@@ -1,4 +1,4 @@
-name: Browser prototype smoke tests
+name: Starfall Dominion gameplay and multiplayer tests
 on:
   push:
     branches: [main]
@@ -11,7 +11,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node tests/smoke.cjs
-      - run: node --test tests/rooms.test.cjs
-
-      - run: node --test tests/rooms.test.cjs
+      - name: Local RTS smoke tests
+        run: node tests/smoke.cjs
+      - name: Experimental snapshot relay tests
+        run: node --test tests/rooms.test.cjs
+      - name: Authoritative multiplayer integration tests
+        run: node --test tests/multiplayer.test.cjs
