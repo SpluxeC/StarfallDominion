@@ -133,6 +133,15 @@ test('colony skyline visualizes real buildings, build orders, and reduced-motion
  const script=html.match(/<script>([\s\S]*?)<\/script>/);
  assert.doesNotThrow(()=>new Function(script[1]));
 });
+test('planetary surface supports clickable districts, zoom, pan and a contextual build inspector',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
+ for(const id of ['colonyScene','surfaceInspector','surfaceInspectorActions','surfaceZoomIn','surfaceZoomOut','surfaceZoomReset'])assert.ok(html.includes('id="'+id+'"'),id);
+ for(const token of ['data-district','plotPositions.forEach','function applySurfaceView()','function renderSurfaceInspector(s)','function changeSurfaceZoom(delta)','pointermove','pointercancel','surfaceSelection=target.dataset.district'])assert.ok(html.includes(token),token);
+ assert.match(html,/role="button" tabindex="0"/);
+ const script=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.ok(script);
+ assert.doesNotThrow(()=>new Function(script[1]));
+});
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
  const file=path.join(dir,'galaxy.json');
