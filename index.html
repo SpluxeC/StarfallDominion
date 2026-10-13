@@ -138,7 +138,7 @@ let fleetMarkerRefs=[];
 function updateFleetMarkers(){for(const marker of fleetMarkerRefs){const {fleet,circle,label}=marker;if(!game.fleets.includes(fleet))continue;const a=game.systems[fleet.path[fleet.step]],b=game.systems[fleet.path[fleet.step+1]];if(!a||!b)continue;const p=Math.min(1,Math.max(0,fleet.progress||0)),cx=a.x+(b.x-a.x)*p,cy=a.y+(b.y-a.y)*p;circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);label.setAttribute('x',cx);label.setAttribute('y',cy-13);}}
 
 const SOLO_DISTRICTS=[['mine','Mine','Mineral extraction','mines'],['reactor','Reactor','Energy production','reactors'],['farm','Farm','Food production','farms'],['shipyard','Shipyard','Fleet production','shipyards'],['extractor','Extractor','Strategic deposits','extractors'],['foundry','Foundry','Alloy production','foundry'],['laboratory','Laboratory','Science production','laboratory'],['tradeHub','Trade Hub','Credit production','tradeHub'],['fortress','Fortress','Defensive district','fortress'],['refinery','Refinery','Gas production','refinery']];
-let soloPlanetId=null,soloDistrict=null,soloView='3d',soloTicket=0;
+let soloPlanetId=null,soloDistrict=null,soloView='2d',soloTicket=0;
 const formatBuildCost=price=>Object.entries(price).map(([resource,amount])=>amount+' '+resource).join(' · ');
 const soloEl=id=>document.getElementById(id);
 function soloPlanetState(s){const buildings={};for(const [type,,,field] of SOLO_DISTRICTS)buildings[type]=s[field]||0;return {id:soloPlanetId,deposit:depositProfile(s,soloPlanetId).type,level:s.level,buildings,jobs:game.jobs.filter(j=>j.system===soloPlanetId).map(j=>j.type)};}
