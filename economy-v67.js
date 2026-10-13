@@ -20,26 +20,26 @@ const StarfallEconomy = (() => {
     const rate=Math.pow(1.55,Math.min(30,level));
     return Object.fromEntries(Object.entries(base).map(([key,n])=>[key,Math.ceil(n*rate)]));
   }
-  function shipCapacity(system) {return 10+25*integer(system?.shipyards);}
+  function shipCapacity(system,techs=[]) {return Math.floor((10+25*integer(system?.shipyards))*(techs.includes('carrierlogistics')?1.2:1));}
   function queuedShips(jobs,systemId) {
     return (jobs||[]).reduce((count,j)=>count+(j&&j.system===systemId?(SHIP_BATCH[j.type]||0):0),0);
   }
-  function shipSlotsLeft(system,jobs,systemId) {
-    return Math.max(0,shipCapacity(system)-integer(system?.ships)-queuedShips(jobs,systemId));
+  function shipSlotsLeft(system,jobs,systemId,techs=[]) {
+    return Math.max(0,shipCapacity(system,techs)-integer(system?.ships)-queuedShips(jobs,systemId));
   }
-  function canBuildShips(type,system,jobs,systemId) {
-    return !!SHIP_BATCH[type]&&shipSlotsLeft(system,jobs,systemId)>=SHIP_BATCH[type];
+  function canBuildShips(type,system,jobs,systemId,techs=[]) {
+    return !!SHIP_BATCH[type]&&shipSlotsLeft(system,jobs,systemId,techs)>=SHIP_BATCH[type];
   }
-  function cargoCapacity(fleet) {
+  function cargoCapacity(fleet,techs=[]) {
     const total=integer(fleet?.ships);
     const cruisers=Math.min(total,integer(fleet?.cruisers));
     const frigates=Math.min(total-cruisers,integer(fleet?.frigates));
-    return (total-cruisers-frigates)*5+frigates*15+cruisers*35;
+    return Math.floor(((total-cruisers-frigates)*5+frigates*15+cruisers*35)*(techs.includes('carrierlogistics')?1.25:1));
   }
   // Space costs: infantry = 1 slot; marines = 2; armored vehicles = 5.
   // Prioritize scarce armored support, then marines, then infantry.
-  function loadCargo(stock,fleet) {
-    const total=cargoCapacity(fleet);
+  function loadCargo(stock,fleet,techs=[]) {
+    const total=cargoCapacity(fleet,techs);
     let remaining=total;
     const armor=Math.min(integer(stock?.armor),Math.floor(remaining/5));remaining-=armor*5;
     const marines=Math.min(integer(stock?.marines),Math.floor(remaining/2));remaining-=marines*2;
