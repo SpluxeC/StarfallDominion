@@ -309,7 +309,7 @@ function renderColonyScene(s){
   if(count||queued)art+=shape(d.type,x,y,w,58+(i%3)*13,count||1,queued&&count===0);
   else art+='<path class="empty-pad" d="M'+x+' '+y+' l15 -14 h'+(w-30)+' l15 14 l-15 10 h-'+(w-30)+'Z"/><path d="M'+(x+w/2)+' '+(y-39)+' v27 M'+(x+w/2-12)+' '+(y-25)+' h24" stroke="#b6ddec" stroke-width="4"/>';
   if(queued)art+='<path class="active-construction" d="M'+(x-5)+' '+(y+4)+' V'+(y-112)+' H'+(x+w+5)+' V'+(y+4)+'" stroke="#fbd27a" stroke-width="2" stroke-dasharray="6 6" fill="none"/>';
-  art+='<text class="district-label" x="'+(x+w/2)+'" y="'+(y+27)+'" text-anchor="middle">'+(i+1)+'. '+(count?'Lv '+count:queued?'Building':'Empty')+'</text></g>';
+  art+='<text class="district-label" x="'+(x+w/2)+'" y="'+(y-122)+'" text-anchor="middle">'+(i+1)+'. '+(count?'Lv '+count:queued?'Building':'Empty')+'</text></g>';
  });
  if(!built.length)art+='<g opacity=".8"><path d="M420 285 L440 245 H515 L535 285Z" fill="#3c5975"/><path d="M450 245 V222 H505 V245" stroke="#83b8cf" stroke-width="5" fill="none"/><circle cx="478" cy="240" r="7" fill="#73e7ed"/></g>';
  art+='<path d="M0 311 Q270 295 490 315 T1000 304 V350 H0Z" fill="#081426" opacity=".78"/>';
