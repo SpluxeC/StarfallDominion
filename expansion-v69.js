@@ -99,6 +99,7 @@ const StarfallExpansion=(()=>{
     const attack=source.ships*0.6;
     const defense=(target.ships||0)+2*(target.fortress||0)+(target.troops||0)*0.05;
     const isEnemy=target.owner==='player';
+    if(isEnemy&&ai.policy==='neutral'&&ai.relations>=20)continue;
     if(isEnemy&&game.elapsedSeconds-(game.aiExpansionStartedAt||0)<140*difficulty)continue;
     if(isEnemy&&attack<defense*(1.05/p.aggression)*difficulty)continue;
     const score=(isEnemy?6*p.aggression:13)+Math.max(0,attack-defense)*0.7+(p.fortify>1.4?-4:0);
