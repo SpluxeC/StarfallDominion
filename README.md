@@ -87,3 +87,22 @@ The game remains a standalone single-player prototype. The v2.0 source is commit
 - **Strategic Extractor:** costs 50 credits, 35 minerals, and 10 alloys; generates 3 units of the planet's deposit per turn.
 - All new resource totals and extraction sites are included in exported saves, with migration for earlier local saves and JSON imports.
 - **v2.2** remains a single-player browser playtest, not server-authoritative multiplayer.
+
+## v3.0 — Enhanced single-player strategy
+- **Galactic Exchange:** buy or sell five minerals, alloys, energy, food, titanium, crystals, or gas per trade, with a spread and price changes every eight turns.
+- **Colony development:** upgrade colonies up to level 4 for more credits and science each turn. Costs increase with each level.
+- Save migration carries earlier versions forward.
+
+## v4.0 — Experimental shared galaxy lab
+- Optional room server at `server/rooms.cjs`, built with Node.js core modules (Node 22 recommended).
+- The game includes room server URL, create/join room, load remote save, and publish turn controls.
+- Room revisions reject conflicting publishes (HTTP 409) instead of overwriting silently.
+- **This is asynchronous save sharing, not real-time multiplayer.** Each browser still computes turns locally. There is no authoritative simulation, identity system, access control, durable storage, or anti-cheat protection.
+- The standalone GitHub Pages build **cannot** host the room backend. Host the Node room server independently, configure HTTPS/CORS, and enter its URL in the game before room features can work.
+- Room codes are not private authentication secrets. Do not use room sync for sensitive content or public production deployments. The included backend stores rooms in memory, which vanish on restart.
+
+### Start a local room server for development
+```bash
+node server/rooms.cjs
+```
+It listens on `http://localhost:8787` by default. Configure `PORT` and `ALLOWED_ORIGINS` for development; use an HTTPS reverse proxy when hosting remotely. Run the tests with `node tests/smoke.cjs` and `node --test tests/rooms.test.cjs`.
