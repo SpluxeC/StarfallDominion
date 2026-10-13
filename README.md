@@ -1,4 +1,4 @@
-# Starfall Dominion — Browser Prototype v0.9
+# Starfall Dominion — Browser Prototype v1.0
 
 A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
 
@@ -22,7 +22,7 @@ For a public static demo, publish the root `index.html` using GitHub Pages (Sett
 ## Next milestone
 Move simulation rules into independently tested modules, add research and ship types, then prototype a server-authoritative persistent multiplayer backend.
 
-## Prototype v0.9 additions
+## Prototype v1.0 additions
 - Five research technologies, science generation and practical technology bonuses.
 - Fleet dispatch percentages (25%, 50%, 100%).
 - Multi-hop fleet travel unlocked by Hyperlane Navigation.
@@ -39,12 +39,22 @@ Move simulation rules into independently tested modules, add research and ship t
 
 Live site, if GitHub Pages has been enabled: https://spluxec.github.io/StarfallDominion/
 
-## Updates v0.4–v0.9
+## Updates v0.4–v1.0
 - **v0.4**: Frigate and cruiser squadrons at shipyards.
 - **v0.5**: Planetary environments and system information.
 - **v0.6**: Battle power reporting and combat counters.
 - **v0.7**: Temporary four-turn diplomatic ceasefires.
 - **v0.8**: Stronger rival fleet and shipyard growth; empire overview tooltip.
-- **v0.9**: Export save files, expanded mission objectives, and updated smoke tests.
+- **v1.0**: Export save files, expanded mission objectives, and updated smoke tests.
 
 **Important:** This remains a single-player, turn-based strategy prototype, not the planned persistent multiplayer RTS. The six updates are code commits, not six separately deployed production releases. A successful automated test run and live GitHub Pages deployment should be checked before claiming browser verification.
+
+## v1.0 playtest release
+- Save migration from v0.9 and earlier builds.
+- Import exported JSON save files with validation and confirmation.
+- Enforce temporary ceasefires when fleets arrive, not just when orders are issued.
+- Smoke test coverage for save import UI and ceasefire combat.
+- This is a **single-player browser playtest**, not the permanent multiplayer game.
+
+### Publishing the playable URL
+In GitHub repository Settings → Pages, choose **Deploy from a branch**, **main**, **/(root)**, and Save. The public URL is https://spluxec.github.io/StarfallDominion/ . If the site still shows 404, inspect repository Actions and Pages settings for deployment errors.
