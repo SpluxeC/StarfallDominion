@@ -142,6 +142,16 @@ test('planetary surface supports clickable districts, zoom, pan and a contextual
  assert.ok(script);
  assert.doesNotThrow(()=>new Function(script[1]));
 });
+test('planetary biome and living city milestone reflects deposits, buildings and colony level',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
+ for(const part of ['function colonyBiome(s)','function colonyEnvironment(s)','function colonyInfrastructure(s)','colonyEnvironment(s);','colonyInfrastructure(s);','construction-crane','civilian-vehicle','sky-transport','prefers-reduced-motion:reduce'])assert.ok(html.includes(part),part);
+ for(const biome of ['Stormworld','Iron Highlands','Crystal Expanse','Frontier Badlands'])assert.ok(html.includes(biome),biome);
+ assert.match(html,/Math\.floor\(total\/3\)\+level-1/);
+ assert.match(html,/if\(level>=3\)/);
+ const script=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.ok(script);
+ assert.doesNotThrow(()=>new Function(script[1]));
+});
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
  const file=path.join(dir,'galaxy.json');
