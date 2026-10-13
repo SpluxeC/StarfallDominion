@@ -1,125 +1,79 @@
-# Starfall Dominion — Browser Playtest v4.0
+# Starfall Dominion — Real-Time RTS Prototype v4.2
 
-A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
+**Starfall Dominion is designed as a persistent, shared-galaxy space RTS.** Players should be able to manage colonies, dispatch fleets, gather intelligence, and interact with each other without waiting for turns.
 
-## Play locally
-Open `index.html` in any modern desktop or mobile browser. No install, server, build process, or dependencies required.
+This repository currently contains an **experimental single-player browser RTS**, a **separate, unhosted shared-snapshot room server**, and automated gameplay tests. It is not yet the fully persistent multiplayer game.
 
-## Controls
-- Select a star system by clicking/tapping it.
-- At your blue systems, construct mines, reactors, farms, shipyards, or ships (if a shipyard exists).
-- Colonize adjacent unclaimed systems using the Colonize button.
-- Send half the ships from a selected friendly system to a reachable destination. Fleets travel one hyperlane per turn.
-- Click **End Turn** to generate resources, advance fleets, and trigger rival AI actions.
-- **Save** stores progress in localStorage; **New Galaxy** resets it.
+## Play
 
-## Scope and limitations
-This is **not** the final game or a networked multiplayer simulation. The galaxy, economic costs, combat and AI are simplified and turn-based for fast testing. The approved long-term design remains real-time, server-authoritative, cross-platform and persistent. Treaty systems, espionage, tactical combat, research and factions are not yet implemented. No real-money features.
+Open [the expected GitHub Pages URL](https://spluxec.github.io/StarfallDominion/) once Pages is configured, or open `index.html` locally in a modern browser. No JavaScript build step or package installation is needed for the browser client.
 
-## Hosting
-For a public static demo, publish the root `index.html` using GitHub Pages (Settings → Pages) or any static hosting service. **Repository is currently private**, so GitHub Pages availability depends on your GitHub plan and repository settings. GitHub source hosting alone does not publish a live website.
+If GitHub Pages returns a 404, the repository owner must enable **Settings → Pages → Deploy from a branch → main → /(root)**. A source commit alone cannot confirm that the site is publicly deployed.
 
-## Next milestone
-Move simulation rules into independently tested modules, add research and ship types, then prototype a server-authoritative persistent multiplayer backend.
+## Real-time gameplay — no End Turn button
 
-## Prototype v1.0 additions
-- Five research technologies, science generation and practical technology bonuses.
-- Fleet dispatch percentages (25%, 50%, 100%).
-- Multi-hop fleet travel unlocked by Hyperlane Navigation.
-- Five in-game objectives guiding a first playtest.
-- Automatic Node.js smoke tests on pushes via GitHub Actions (`node tests/smoke.cjs`).
+- The simulation automatically advances while the browser game is open.
+- **Production:** Every 20 seconds of simulation produces the amounts shown in **Production / 20 seconds**. Income and research are accrued continuously, not awarded at discrete turn boundaries.
+- **Construction:** Building or upgrading queues a job. Structures and ship squadrons finish after their countdown, even while you issue other orders. Each colony supports up to four queued jobs.
+- **Fleet travel:** Ships move along hyperlanes, taking approximately **9 simulation seconds per hop**; animated markers show their position. Research unlocks longer routes across your network.
+- **Opponents:** The rival AI grows its military and issues expansion or attack orders automatically. The Easy / Normal / Hard setting adjusts pressure.
+- **Diplomacy:** Ceasefires last **80 simulation seconds** and prevent hostile arrivals during their term.
+- **Testing controls:** **Pause / Resume** stops the local simulation. **Speed ×1 / ×2 / ×4** accelerates the whole simulation to shorten playtests.
+- **Trading:** Galactic Exchange quotes adjust approximately every 160 simulation seconds.
 
-## Interactive playtest checklist
-1. Select Vega and colonize it.
-2. Select Solace and build another mine.
-3. End turns until you can research a technology.
-4. Build ships at Solace and dispatch a fleet to a neighboring system.
-5. Continue until the rival AI contests territory.
-6. Reload the page and confirm progress persists.
+This is currently a **local simulation that runs only while the browser page is active**. The clock is not maintained by a remote authoritative server; closing the browser does not simulate a persistent galaxy in the background. All strategic time values are provisional for balancing.
 
-Live site, if GitHub Pages has been enabled: https://spluxec.github.io/StarfallDominion/
+## Playtest controls
 
-## Updates v0.4–v1.0
-- **v0.4**: Frigate and cruiser squadrons at shipyards.
-- **v0.5**: Planetary environments and system information.
-- **v0.6**: Battle power reporting and combat counters.
-- **v0.7**: Temporary four-turn diplomatic ceasefires.
-- **v0.8**: Stronger rival fleet and shipyard growth; empire overview tooltip.
-- **v1.0**: Export save files, expanded mission objectives, and updated smoke tests.
+1. Select a star system by clicking, tapping, or keyboard activation.
+2. Colonize neutral systems adjacent to your colonies.
+3. At owned systems, queue mines, reactors, farms, shipyards, strategic extractors, ship squadrons, and colony upgrades.
+4. Watch countdowns in the selected system's construction queue.
+5. Build fleets and dispatch 25%, 50%, or 100% of available ships toward reachable systems.
+6. Research navigation, industry, combat, defense, and logistics technologies.
+7. Watch your resources, science, enemy activity, and moving fleet markers advance **without any manual turn action**.
+8. Use Pause, Speed, Save, Export Save, and Import Save for testing.
 
-**Important:** This remains a single-player, turn-based strategy prototype, not the planned persistent multiplayer RTS. The six updates are code commits, not six separately deployed production releases. A successful automated test run and live GitHub Pages deployment should be checked before claiming browser verification.
+Your initial civilization owns Solace and the AI controls Haven. The map currently includes nine linked systems. Player resources are credits, minerals, alloys, energy, food, titanium, crystals, and gas; science is tracked separately.
 
-## v1.0 playtest release
-- Save migration from v0.9 and earlier builds.
-- Import exported JSON save files with validation and confirmation.
-- Enforce temporary ceasefires when fleets arrive, not just when orders are issued.
-- Smoke test coverage for save import UI and ceasefire combat.
-- This is a **single-player browser playtest**, not the permanent multiplayer game.
+## Saves and migration
 
-### Publishing the playable URL
-In GitHub repository Settings → Pages, choose **Deploy from a branch**, **main**, **/(root)**, and Save. The public URL is https://spluxec.github.io/StarfallDominion/ . If the site still shows 404, inspect repository Actions and Pages settings for deployment errors.
+Saves are stored in the browser under `starfall-dominion-rts-v42`. Older `v4.1` and turn-based `v4.0` and earlier saves are loaded if a newer save is not present. Old turn-based timestamps, travel steps, and ceasefires are converted to real-time fields; queued jobs are stored in the new format. JSON import/export is also supported.
 
-## v1.1 and v1.2
-- **v1.1:** Empire dashboard tracking colonies, rival territory, stationed ships, fleets in transit, and battle count.
-- **v1.2:** In-game How to Play guide with onboarding instructions.
-- Both versions retain migration from older browser save keys. The automated smoke test checks new UI elements.
+Save migration should be tested before further schema changes. The legacy `turn` property is retained for old-file and experimental room-server compatibility but **does not advance gameplay**.
 
-## v2.0 strategy playtest
-- Empire-wide **per-turn resource forecast**, including research income.
-- **AI difficulty** selection: Easy, Normal, or Hard. Difficulty influences rival fleet growth and attack frequency; settings persist in browser saves.
-- **Intel toggle**: conceal rival ship counts or reveal them for testing. This is a local debug/test aid, not a multiplayer intelligence system.
-- New smoke-test assertions for forecast, AI settings, and intel controls.
-- Existing local saves migrate from v1.2 and earlier known versions.
+## Experimental Shared Galaxy Lab (not actual multiplayer)
 
-### Status
-The game remains a standalone single-player prototype. The v2.0 source is committed, but a successful live-browser test and GitHub Pages deployment are not verified by the source commit alone.
+A prototype Node server in `server/rooms.cjs` supports **manual snapshot sharing**: create/join a room, upload a whole game state, download a whole game state, and reject concurrent writes with stale revision numbers.
 
-## v2.1 Visual Overhaul
-- Refreshed command center styling, typography, responsive controls, and empire panels.
-- Galaxy nebula backdrop, denser starfield, glowing stars, clearer selection highlights, and refined hyperlanes.
-- Persistent ownership legend, keyboard focus indicators, and reduced-motion support.
-- Local save migration from v2.0. This changes presentation, not the multiplayer architecture.
+To run it locally:
 
-## v2.2 Strategic Resource Economy
-- **Titanium:** harvested by extractors on volcanic, barren, and tundra worlds. Required for frigate and cruiser squadrons.
-- **Crystals:** harvested on temperate, arid, and frozen worlds. Each technology after the first requires four crystals in addition to science.
-- **Gas:** harvested on oceanic, jungle, and gas-rich worlds. Required for cruiser squadrons and ceasefire negotiations.
-- **Strategic Extractor:** costs 50 credits, 35 minerals, and 10 alloys; generates 3 units of the planet's deposit per turn.
-- All new resource totals and extraction sites are included in exported saves, with migration for earlier local saves and JSON imports.
-- **v2.2** remains a single-player browser playtest, not server-authoritative multiplayer.
-
-## v3.0 — Enhanced single-player strategy
-- **Galactic Exchange:** buy or sell five minerals, alloys, energy, food, titanium, crystals, or gas per trade, with a spread and price changes every eight turns.
-- **Colony development:** upgrade colonies up to level 4 for more credits and science each turn. Costs increase with each level.
-- Save migration carries earlier versions forward.
-
-## v4.0 — Experimental shared galaxy lab
-- Optional room server at `server/rooms.cjs`, built with Node.js core modules (Node 22 recommended).
-- The game includes room server URL, create/join room, load remote save, and publish turn controls.
-- Room revisions reject conflicting publishes (HTTP 409) instead of overwriting silently.
-- **This is asynchronous save sharing, not real-time multiplayer.** Each browser still computes turns locally. There is no authoritative simulation, identity system, access control, durable storage, or anti-cheat protection.
-- The standalone GitHub Pages build **cannot** host the room backend. Host the Node room server independently, configure HTTPS/CORS, and enter its URL in the game before room features can work.
-- Room codes are not private authentication secrets. Do not use room sync for sensitive content or public production deployments. The included backend stores rooms in memory, which vanish on restart.
-
-### Start a local room server for development
 ```bash
 node server/rooms.cjs
 ```
-It listens on `http://localhost:8787` by default. Configure `PORT` and `ALLOWED_ORIGINS` for development; use an HTTPS reverse proxy when hosting remotely. Run the tests with `node tests/smoke.cjs` and `node --test tests/rooms.test.cjs`.
 
-## v3.0 Gameplay Upgrade
-- Galactic Exchange: buy or sell 5 units of minerals, alloys, energy, food, titanium, crystals, or gas using credits, with a spread between buy and sell prices.
-- Planetary colony upgrades (levels 1–4): each level adds credit and science income.
-- Previous local saves are migrated and continue to use the same browser link.
+The server defaults to port `8787`. Configure `PORT` and `ALLOWED_ORIGINS` through environment variables. For a GitHub Pages client, you must separately deploy it on an HTTPS host and provide that URL in the game's Shared Galaxy Lab.
 
-## v4.0 Experimental Shared Galaxy Lab
-- Browser game adds **Create room**, **Join room**, **Load shared**, and **Publish turn** controls.
-- A standalone Node.js HTTP room server lives in `server/rooms.cjs`. It uses in-memory rooms and optimistic revisions to reject conflicting uploads.
-- Local server: `node server/rooms.cjs` (default port 8787; `PORT` configurable).
-- Server tests: `node --test tests/rooms.test.cjs`. Browser smoke tests: `node tests/smoke.cjs`.
-- By default, cross-origin requests are permitted from `https://spluxec.github.io` and local development origins. Configure `ALLOWED_ORIGINS` to adjust. Deploy the Node.js server separately on a host that supports Node and HTTPS, then enter its HTTPS address in the game under **Shared Galaxy Lab**.
-- **Security warning:** Shared rooms have no accounts, authentication, access-control lists, rate limiting, or persistent database. Anyone with a room code and server access can read/modify its state. Do not deploy as a production multiplayer service or store sensitive information there.
-- **Persistence warning:** Room data is lost when the server restarts. The public GitHub Pages link hosts only the browser client, not the Node.js server.
-- **Game-design limitation:** This is asynchronous collaborative turn-sharing of one game state, not a simultaneous/authoritative multiplayer game. Players are not assigned separate factions; the server does not validate game moves or protect against cheating.
+**This room server is not an RTS multiplayer backend.** It lacks accounts, player-specific empires, durable storage, authoritative action validation, anti-cheat rules, and continuous server simulation. It is an untrusted proof of concept; do not expose it publicly as a production service or put private information in rooms.
 
-The v4.0 label denotes an **experimental architecture milestone**, not a finished multiplayer release. GitHub Pages deployment and end-to-end browser/network testing must be verified separately.
+The intended real multiplayer architecture will use a server-owned, continuously ticking galaxy with validated player commands, identity and access control, database persistence, reconnection, and synchronized state updates. Client clocks and localStorage must not decide the official outcome of a multiplayer game.
+
+## Tests
+
+Node.js 22 is used in GitHub Actions. No third-party packages are required.
+
+```bash
+node tests/smoke.cjs
+node --test tests/rooms.test.cjs
+```
+
+The browser smoke test exercises ongoing production, pause, queued ship construction, real-time fleet arrivals, AI activity, research, trading, timed ceasefires, colony upgrades, legacy save migration, and interface behavior.
+
+## Version direction
+
+- **v1.x–v2.x:** Initial turn-based prototype and incremental economy/combat work.
+- **v3.0:** Galactic Exchange and colony upgrades.
+- **v4.0:** Experimental snapshot-sharing room service (not live multiplayer).
+- **v4.1–v4.2:** Corrected direction to a continuously advancing **RTS**, with time-based simulation, fleets, AI, ceasefires, and construction queues.
+
+Future work should be developed against the RTS simulation, **not** reintroduce End Turn mechanics. The main remaining milestone is a genuinely server-authoritative persistent galaxy that friends can occupy together.
