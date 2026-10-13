@@ -85,7 +85,7 @@ function createServer(options={}){
     res.writeHead(200,{'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     streams.set(res,id);
     res.write('retry: 2000\nevent: snapshot\ndata: '+JSON.stringify(rules.snapshot(galaxy,id))+'\n\n');
-    req.on('close',()=>streams.delete(res));return;
+    res.on('close',()=>streams.delete(res));return;
    }
    if(req.method==='POST'&&url.pathname==='/api/command'){
     const now=Date.now(),key=id,stamp=recent.get(key)||[];
