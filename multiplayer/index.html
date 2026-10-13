@@ -130,14 +130,15 @@ function renderSelected(){
   if(s.owner===null){const b=button('Found colony',()=>command({type:'colonize',system:s.id}),!affordable(galaxy.costs.colony),true);orders.append(b);const info=document.createElement('p');info.textContent='Requires 65 credits, 30 alloys and an adjacent owned system.';orders.append(info);}
   else{const p=document.createElement('p');p.className='muted';p.textContent='Send a fleet from a friendly system to contest this system.';orders.append(p);}return;
  }
- for(const [k,v] of Object.entries(s.buildings))labelLine(box,k[0].toUpperCase()+k.slice(1),v);
+ for(const [k,v] of Object.entries(s.buildings))if(v>0)labelLine(box,({tradeHub:'Trade Hub',foundry:'Alloy Foundry',laboratory:'Research Lab',fortress:'Orbital Fortress',refinery:'Gas Refinery'}[k]||k[0].toUpperCase()+k.slice(1)),v);
  const heading=document.createElement('h3');heading.textContent='Construction orders';orders.append(heading);
  const buttons=div('actions');orders.append(buttons);
- for(const type of ['mine','reactor','farm','shipyard','extractor','frigate','cruiser','upgrade']){
+ const buildingInfo={mine:['⛏ Mine','+8 minerals'],reactor:['⚡ Reactor','+7 energy'],farm:['🌾 Hydroponic Farm','+6 food'],shipyard:['🛠 Shipyard','+4 alloys and shipbuilding'],extractor:['💎 Extractor','+3 local deposit'],foundry:['🏭 Alloy Foundry','+7 alloys, -3 energy'],laboratory:['🔬 Research Lab','+9 science, -2 energy'],tradeHub:['🏦 Trade Hub','+10 credits'],fortress:['🛡 Orbital Fortress','+6 defensive strength'],refinery:['🧪 Gas Refinery','+5 gas on gas worlds'],frigate:['🚀 Frigate','Build 3 ships'],cruiser:['🛸 Cruiser','Build 5 ships'],upgrade:['🏙 Colony Upgrade','Unlock advanced buildings']};
+ for(const type of ['mine','reactor','farm','shipyard','extractor','foundry','laboratory','tradeHub','fortress','refinery','frigate','cruiser','upgrade']){
   const cost=type==='upgrade'?Object.fromEntries(Object.entries(galaxy.costs.upgrade).map(([k,v])=>[k,v*s.level])):galaxy.costs[type];
-  const disabled=!affordable(cost)||((type==='frigate'||type==='cruiser')&&!s.buildings.shipyard)||(type==='upgrade'&&s.level>=4)||galaxy.jobs.filter(j=>j.system===s.id).length>=4;
+  const disabled=!affordable(cost)||((type==='frigate'||type==='cruiser')&&!s.buildings.shipyard)||(type==='upgrade'&&s.level>=4)||(['fortress','laboratory','refinery'].includes(type)&&s.level<2)||(type==='refinery'&&s.deposit!=='gas')||(type==='extractor'&&s.deposit==='minerals')||galaxy.jobs.filter(j=>j.system===s.id).length>=4;
   const costText=Object.entries(cost).map(([k,v])=>v+' '+k.slice(0,1).toUpperCase()).join(' / ');
-  buttons.append(button(type[0].toUpperCase()+type.slice(1)+' · '+costText,()=>command({type:'build',system:s.id,building:type}),disabled));
+  const b=button(buildingInfo[type][0]+' · '+costText,()=>command({type:'build',system:s.id,building:type}),disabled);b.title=buildingInfo[type][1]+(['fortress','laboratory','refinery'].includes(type)?' · Requires colony level 2':'');buttons.append(b);
  }
  const heading2=document.createElement('h3');heading2.textContent='Fleet deployment';orders.append(heading2);
  const form=div('field');const ships=document.createElement('input');ships.type='number';ships.min=1;ships.max=s.ships;ships.value=Math.max(1,Math.floor(s.ships/2));ships.setAttribute('aria-label','Ships to dispatch');
