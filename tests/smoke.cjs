@@ -200,7 +200,7 @@ run('game.systems[4].ships+=5;resolveArrival({owner:"ai",ships:4,troops:0,path:[
 assert.ok(run('game.engagements[0].defendHP')>50,'Friendly reinforcements strengthen an ongoing defense');
 run('game.ceasefireEndsAt=game.elapsedSeconds+30;const held=game.engagements[0].elapsed;stepSimulation(2)');
 assert.equal(run('game.engagements[0].elapsed'),run('held'),'Ceasefire freezes existing battles');
-run('game.ceasefireEndsAt=0;game.engagements[0].attackHP=500;game.engagements[0].attackShips=50;game.engagements[0].defendHP=1;');
+run('game.ceasefireEndsAt=0;game.engagements[0].attackHP=500;game.engagements[0].attackShips=10;game.engagements[0].defendHP=1;');
 run('stepSimulation(2)');
 assert.equal(run('game.engagements.length'),0,'Completed battles are cleared');
 assert.equal(run('game.systems[4].owner'),'ai','A successful space attack without troops can lose its invasion');
