@@ -79,3 +79,11 @@ The game remains a standalone single-player prototype. The v2.0 source is commit
 - Galaxy nebula backdrop, denser starfield, glowing stars, clearer selection highlights, and refined hyperlanes.
 - Persistent ownership legend, keyboard focus indicators, and reduced-motion support.
 - Local save migration from v2.0. This changes presentation, not the multiplayer architecture.
+
+## v2.2 Strategic Resource Economy
+- **Titanium:** harvested by extractors on volcanic, barren, and tundra worlds. Required for frigate and cruiser squadrons.
+- **Crystals:** harvested on temperate, arid, and frozen worlds. Each technology after the first requires four crystals in addition to science.
+- **Gas:** harvested on oceanic, jungle, and gas-rich worlds. Required for cruiser squadrons and ceasefire negotiations.
+- **Strategic Extractor:** costs 50 credits, 35 minerals, and 10 alloys; generates 3 units of the planet's deposit per turn.
+- All new resource totals and extraction sites are included in exported saves, with migration for earlier local saves and JSON imports.
+- **v2.2** remains a single-player browser playtest, not server-authoritative multiplayer.
