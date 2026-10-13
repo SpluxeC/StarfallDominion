@@ -29,7 +29,7 @@ function system(s,id){if(!Number.isInteger(id)||!s.systems[id])fail('Unknown sta
 function owns(s,id,sysId){const sys=system(s,sysId);if(sys.owner!==id)fail('You do not control that system');return sys;}
 function has(e,cost){return Object.entries(cost).every(([k,v])=>Number.isFinite(e.resources[k])&&e.resources[k]>=v);}
 function spend(e,cost){if(!has(e,cost))fail('Not enough resources');for(const [k,v] of Object.entries(cost))e.resources[k]-=v;}
-function addEmpire(s,id,name){if(!/^[a-f0-9]{16}$/.test(id))fail('Invalid identity');if(s.empires[id])fail('Already joined');const count=Object.keys(s.empires).length;if(count>=HOMES.length)fail('The four-player playtest galaxy is full');const home=HOMES[count],sys=s.systems[home];if(sys.owner!==null)fail('Starting territory unavailable');const empire={id,name:String(name||'Commander').trim().slice(0,24)||'Commander',color:['#62deff','#78ecaf','#ffc078','#c995ff'][count],resources:{...START_RESOURCES},science:0,techs:[],reputation:0,recoveryReadyAt:0,createdAt:s.time};s.empires[id]=empire;sys.owner=id;sys.ships=5;sys.buildings={mine:1,reactor:1,farm:1,shipyard:1,extractor:0};log(s,empire.name+' established a colony on '+sys.name);s.version++;return empire;}
+function addEmpire(s,id,name){if(!/^[a-f0-9]{16}$/.test(id))fail('Invalid identity');if(s.empires[id])fail('Already joined');const count=Object.keys(s.empires).length;if(count>=HOMES.length)fail('The four-player playtest galaxy is full');const preferred=HOMES[count];const home=s.systems[preferred].owner===null?preferred:(HOMES.find(i=>s.systems[i].owner===null)??s.systems.find(x=>x.owner===null)?.id);if(home===undefined)fail('No starting system available');const sys=s.systems[home];const empire={id,name:String(name||'Commander').trim().slice(0,24)||'Commander',color:['#62deff','#78ecaf','#ffc078','#c995ff'][count],resources:{...START_RESOURCES},science:0,techs:[],reputation:0,recoveryReadyAt:0,createdAt:s.time};s.empires[id]=empire;sys.owner=id;sys.ships=5;sys.buildings={mine:1,reactor:1,farm:1,shipyard:1,extractor:0};log(s,empire.name+' established a colony on '+sys.name);s.version++;return empire;}
 function path(s,owner,from,to){const q=[[from]],seen=new Set([from]);while(q.length){const p=q.shift(),v=p[p.length-1];if(v===to)return p;for(const n of adjacent(v)){if(!seen.has(n)&&(n===to||s.systems[n].owner===owner)){seen.add(n);q.push([...p,n]);}}}return null;}
 function pact(s,a,b){return s.treaties.find(t=>t.active&&t.until>s.time&&((t.a===a&&t.b===b)||(t.a===b&&t.b===a)));}
 function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeof cmd.type!=='string')fail('Invalid command');let result={ok:true};
@@ -114,7 +114,7 @@ function income(s,e){const out={credits:0,minerals:0,alloys:0,energy:0,food:0,ti
 function arrival(s,f,at){
  const x=s.systems[at],attacker=f.owner,defender=x.owner;
  if(defender===attacker){x.ships+=f.ships;return;}
- if(defender===null){x.owner=attacker;x.ships=f.ships;log(s,attacker==='pirates'?'Pirates seized '+x.name:s.empires[attacker].name+' claimed '+x.name);return;}
+ if(defender===null){if(attacker==='pirates'&&HOMES.includes(at)&&Object.keys(s.empires).length<HOMES.length){const origin=s.systems[f.path[0]];if(origin.owner==='pirates')origin.ships+=f.ships;return;}x.owner=attacker;x.ships=f.ships;log(s,attacker==='pirates'?'Pirates seized '+x.name:s.empires[attacker].name+' claimed '+x.name);return;}
  if(pact(s,attacker,defender)){const origin=s.systems[f.path[0]];if(origin.owner===attacker)origin.ships+=f.ships;return;}
  const tech=attacker==='pirates'?null:s.empires[attacker],defTech=defender==='pirates'?null:s.empires[defender];
  const atk=f.ships*(tech&&tech.techs.includes('weapons')?1.35:1);
@@ -143,7 +143,7 @@ function tick(s,dt){if(!Number.isFinite(dt)||dt<=0) return;dt=Math.min(3600,dt);
  while(s.aiClock>=15){s.aiClock-=15;for(const x of s.systems.filter(x=>x.owner==='pirates'))x.ships+=2;}
  while(s.aiOrderClock>=35){s.aiOrderClock-=35;
   const pirate=s.systems.filter(x=>x.owner==='pirates'&&x.ships>=5).sort((a,b)=>b.ships-a.ships)[0];
-  if(pirate){const candidates=adjacent(pirate.id).filter(n=>s.systems[n].owner!=='pirates');if(candidates.length){const target=candidates.find(n=>s.systems[n].owner===null)??candidates[0],ships=Math.max(3,Math.floor(pirate.ships/2));pirate.ships-=ships;s.fleets.push({id:s.nextId++,owner:'pirates',ships,path:[pirate.id,target],hop:0,remaining:12,hopTotal:12});log(s,'Pirate raiders launched toward '+s.systems[target].name);}}
+  if(pirate){const candidates=adjacent(pirate.id).filter(n=>s.systems[n].owner!=='pirates'&&!(s.systems[n].owner===null&&HOMES.includes(n)&&Object.keys(s.empires).length<HOMES.length));if(candidates.length){const target=candidates.find(n=>s.systems[n].owner===null)??candidates[0],ships=Math.max(3,Math.floor(pirate.ships/2));pirate.ships-=ships;s.fleets.push({id:s.nextId++,owner:'pirates',ships,path:[pirate.id,target],hop:0,remaining:12,hopTotal:12});log(s,'Pirate raiders launched toward '+s.systems[target].name);}}
  }
  s.version++;
 }
