@@ -9,10 +9,12 @@ const START_RESOURCES={credits:220,minerals:160,alloys:110,energy:100,food:100,t
 const COSTS={
  mine:{credits:30,minerals:25},reactor:{credits:30,minerals:25},farm:{credits:25,minerals:20},
  shipyard:{credits:75,minerals:55,alloys:25},extractor:{credits:45,minerals:30,alloys:10},
+ foundry:{credits:65,minerals:50,energy:15},laboratory:{credits:65,minerals:40,crystals:3},tradeHub:{credits:70,minerals:35,alloys:15},
+ fortress:{credits:85,minerals:45,alloys:35},refinery:{credits:65,minerals:40,gas:4},
  frigate:{credits:50,alloys:35,titanium:3},cruiser:{credits:95,alloys:80,titanium:12,gas:5},
  colony:{credits:65,alloys:30},upgrade:{credits:80,minerals:60,alloys:25}
 };
-const BUILD_TIMES={mine:12,reactor:12,farm:10,shipyard:24,extractor:15,frigate:14,cruiser:25,upgrade:28};
+const BUILD_TIMES={mine:12,reactor:12,farm:10,shipyard:24,extractor:15,foundry:20,laboratory:22,tradeHub:20,fortress:26,refinery:23,frigate:14,cruiser:25,upgrade:28};
 const RESEARCH={
  industry:{name:'Industrial Automation',science:65,crystals:4,description:'+50% mineral production'},
  engines:{name:'Hyperlane Drives',science:80,crystals:6,description:'Fleets travel 25% faster'},
@@ -21,7 +23,7 @@ const RESEARCH={
  logistics:{name:'Trade Logistics',science:70,crystals:5,description:'+30% credit production'}
 };
 const adjacent=i=>EDGES.flatMap(([a,b])=>a===i?[b]:b===i?[a]:[]);
-function newGalaxy(){return {schema:1,time:0,version:1,nextId:1,aiClock:0,aiOrderClock:0,systems:NAMES.map((name,id)=>({id,name,x:POINTS[id][0],y:POINTS[id][1],owner:id===19?'pirates':null,deposit:DEPOSITS[id],level:1,ships:id===19?7:0,buildings:{mine:0,reactor:0,farm:0,shipyard:0,extractor:0}})),empires:{},fleets:[],jobs:[],treaties:[],offers:[],events:[]};}
+function newGalaxy(){return {schema:1,time:0,version:1,nextId:1,aiClock:0,aiOrderClock:0,systems:NAMES.map((name,id)=>({id,name,x:POINTS[id][0],y:POINTS[id][1],owner:id===19?'pirates':null,deposit:DEPOSITS[id],level:1,ships:id===19?7:0,buildings:{mine:0,reactor:0,farm:0,shipyard:0,extractor:0,foundry:0,laboratory:0,tradeHub:0,fortress:0,refinery:0}})),empires:{},fleets:[],jobs:[],treaties:[],offers:[],events:[]};}
 function log(s,message,audience=null,systemId=null){s.events.unshift({time:Math.floor(s.time),message,audience,systemId});s.events=s.events.slice(0,70);}
 function fail(message){throw Object.assign(new Error(message),{status:400});}
 function who(s,id){const e=s.empires[id];if(!e)fail('Empire not found');return e;}
@@ -29,7 +31,7 @@ function system(s,id){if(!Number.isInteger(id)||!s.systems[id])fail('Unknown sta
 function owns(s,id,sysId){const sys=system(s,sysId);if(sys.owner!==id)fail('You do not control that system');return sys;}
 function has(e,cost){return Object.entries(cost).every(([k,v])=>Number.isFinite(e.resources[k])&&e.resources[k]>=v);}
 function spend(e,cost){if(!has(e,cost))fail('Not enough resources');for(const [k,v] of Object.entries(cost))e.resources[k]-=v;}
-function addEmpire(s,id,name){if(!/^[a-f0-9]{16}$/.test(id))fail('Invalid identity');if(s.empires[id])fail('Already joined');const count=Object.keys(s.empires).length;if(count>=HOMES.length)fail('The four-player playtest galaxy is full');const preferred=HOMES[count];const home=s.systems[preferred].owner===null?preferred:(HOMES.find(i=>s.systems[i].owner===null)??s.systems.find(x=>x.owner===null)?.id);if(home===undefined)fail('No starting system available');const sys=s.systems[home];const empire={id,name:String(name||'Commander').trim().slice(0,24)||'Commander',color:['#62deff','#78ecaf','#ffc078','#c995ff'][count],resources:{...START_RESOURCES},science:0,techs:[],reputation:0,recoveryReadyAt:0,createdAt:s.time};s.empires[id]=empire;sys.owner=id;sys.ships=5;sys.buildings={mine:1,reactor:1,farm:1,shipyard:1,extractor:0};log(s,empire.name+' established a colony on '+sys.name,null,sys.id);s.version++;return empire;}
+function addEmpire(s,id,name){if(!/^[a-f0-9]{16}$/.test(id))fail('Invalid identity');if(s.empires[id])fail('Already joined');const count=Object.keys(s.empires).length;if(count>=HOMES.length)fail('The four-player playtest galaxy is full');const preferred=HOMES[count];const home=s.systems[preferred].owner===null?preferred:(HOMES.find(i=>s.systems[i].owner===null)??s.systems.find(x=>x.owner===null)?.id);if(home===undefined)fail('No starting system available');const sys=s.systems[home];const empire={id,name:String(name||'Commander').trim().slice(0,24)||'Commander',color:['#62deff','#78ecaf','#ffc078','#c995ff'][count],resources:{...START_RESOURCES},science:0,techs:[],reputation:0,recoveryReadyAt:0,createdAt:s.time};s.empires[id]=empire;sys.owner=id;sys.ships=5;sys.buildings={mine:1,reactor:1,farm:1,shipyard:1,extractor:0,foundry:0,laboratory:0,tradeHub:0,fortress:0,refinery:0};log(s,empire.name+' established a colony on '+sys.name,null,sys.id);s.version++;return empire;}
 function path(s,owner,from,to){const q=[[from]],seen=new Set([from]);while(q.length){const p=q.shift(),v=p[p.length-1];if(v===to)return p;for(const n of adjacent(v)){if(!seen.has(n)&&(n===to||s.systems[n].owner===owner)){seen.add(n);q.push([...p,n]);}}}return null;}
 function pact(s,a,b){return s.treaties.find(t=>t.active&&t.until>s.time&&((t.a===a&&t.b===b)||(t.a===b&&t.b===a)));}
 function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeof cmd.type!=='string')fail('Invalid command');let result={ok:true};
@@ -42,6 +44,9 @@ function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeo
   if(s.jobs.filter(j=>j.system===x.id).length>=4)fail('Construction queue is full');
   if((type==='frigate'||type==='cruiser')&&!x.buildings.shipyard)fail('A shipyard is required');
   if(type==='upgrade'&&x.level>=4)fail('Maximum colony level reached');
+  if(['fortress','laboratory','refinery'].includes(type)&&x.level<2)fail('Upgrade this colony to level 2 first');
+  if(type==='refinery'&&x.deposit!=='gas')fail('Refineries require a gas deposit');
+  if(type==='extractor'&&x.deposit==='minerals')fail('Mineral deposits are developed with mines');
   if(type==='upgrade'&&s.jobs.some(j=>j.system===x.id&&j.type==='upgrade'))fail('Colony upgrade already queued');
   const cost=type==='upgrade'?Object.fromEntries(Object.entries(COSTS.upgrade).map(([k,v])=>[k,v*x.level])):COSTS[type];
   spend(e,cost);const job={id:s.nextId++,system:x.id,owner:id,type,remaining:BUILD_TIMES[type]};s.jobs.push(job);
@@ -94,7 +99,7 @@ function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeo
   const target=s.systems.find(x=>x.owner===null);
   e.resources.credits=Math.max(e.resources.credits,100);e.resources.minerals=Math.max(e.resources.minerals,80);e.resources.alloys=Math.max(e.resources.alloys,30);
   if(target){
-   target.owner=id;target.ships=2;target.level=1;target.buildings={mine:1,reactor:1,farm:1,shipyard:0,extractor:0};
+   target.owner=id;target.ships=2;target.level=1;target.buildings={mine:1,reactor:1,farm:1,shipyard:0,extractor:0,foundry:0,laboratory:0,tradeHub:0,fortress:0,refinery:0};
    log(s,e.name+' founded an exile recovery outpost on '+target.name,null,target.id);
   }else{
    const candidates=s.systems.filter(x=>x.owner!==id&&!pact(s,id,x.owner)).sort((a,b)=>(a.owner==='pirates'?0:1)-(b.owner==='pirates'?0:1)||a.ships-b.ships);
@@ -111,12 +116,13 @@ function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeo
 function hopDuration(e){return e&&e.techs.includes('engines')?9:12;}
 function income(s,e){const out={credits:0,minerals:0,alloys:0,energy:0,food:0,titanium:0,crystals:0,gas:0,science:0};
  for(const x of s.systems){if(x.owner!==e.id)continue;
-  out.credits+=12+3*x.buildings.mine+4*(x.level-1);
+  out.credits+=12+3*x.buildings.mine+4*(x.level-1)+10*(x.buildings.tradeHub||0);
   out.minerals+=8*x.buildings.mine*(e.techs.includes('industry')?1.5:1);
-  out.energy+=7*x.buildings.reactor-2;out.food+=6*x.buildings.farm-2;
-  out.alloys+=x.buildings.shipyard?4:1;
-  out.science+=4+2*x.buildings.shipyard+2*(x.level-1);
+  out.energy+=7*x.buildings.reactor-2-3*(x.buildings.foundry||0)-2*(x.buildings.laboratory||0);out.food+=6*x.buildings.farm-2;
+  out.alloys+=(x.buildings.shipyard?4:1)+7*(x.buildings.foundry||0);
+  out.science+=4+2*x.buildings.shipyard+2*(x.level-1)+9*(x.buildings.laboratory||0);
   if(x.buildings.extractor)out[x.deposit]+=3*x.buildings.extractor;
+  if(x.deposit==='gas')out.gas+=5*(x.buildings.refinery||0);
  }
  if(e.techs.includes('logistics'))out.credits*=1.3;
  return out;
@@ -128,7 +134,7 @@ function arrival(s,f,at){
  if(pact(s,attacker,defender)){const origin=s.systems[f.path[0]];if(origin.owner===attacker)origin.ships+=f.ships;return;}
  const tech=attacker==='pirates'?null:s.empires[attacker],defTech=defender==='pirates'?null:s.empires[defender];
  const atk=f.ships*(tech&&tech.techs.includes('weapons')?1.35:1);
- const defense=x.ships+1+(defTech&&defTech.techs.includes('shields')?4:0);
+ const defense=x.ships+1+6*(x.buildings.fortress||0)+(defTech&&defTech.techs.includes('shields')?4:0);
  if(atk>defense){x.owner=attacker;x.ships=Math.max(1,Math.floor(f.ships-defense/(atk/f.ships)));x.level=1;x.buildings={mine:0,reactor:0,farm:0,shipyard:0,extractor:0};
   s.jobs=s.jobs.filter(j=>j.system!==at);
   log(s,(attacker==='pirates'?'Pirates':tech.name)+' conquered '+x.name,null,at);
@@ -139,8 +145,8 @@ function tick(s,dt){if(!Number.isFinite(dt)||dt<=0) return;dt=Math.min(3600,dt);
    if(k==='science')e.science+=v*dt/20;else e.resources[k]=Math.max(0,(e.resources[k]||0)+v*dt/20);
  }}
  const pending=[];for(const job of s.jobs){job.remaining-=dt;if(job.remaining>0){pending.push(job);continue;}
-  const x=s.systems[job.system];if(x.owner!==job.owner)continue;
-  if(job.type==='frigate')x.ships+=3;else if(job.type==='cruiser')x.ships+=5;else if(job.type==='upgrade')x.level=Math.min(4,x.level+1);else x.buildings[job.type]++;
+  const x=s.systems[job.system];if(x.owner!==job.owner)continue;if(!x.buildings)x.buildings={};
+  if(job.type==='frigate')x.ships+=3;else if(job.type==='cruiser')x.ships+=5;else if(job.type==='upgrade')x.level=Math.min(4,x.level+1);else x.buildings[job.type]=(x.buildings[job.type]||0)+1;
   log(s,job.type+' finished at '+x.name,job.owner);
  }s.jobs=pending;
  const moving=[];for(const f of s.fleets){f.remaining-=dt;let finished=false;while(f.remaining<=0){
