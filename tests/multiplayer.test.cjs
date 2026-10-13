@@ -236,3 +236,22 @@ test('HTTP server enforces invitations, bearer authorization, scoped empires, SS
   assert.equal(res.status,200,'Token survives restart and grants the same player');
  }finally{await new Promise(resolve=>restored.server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('version 5.5 recovery enrollment and galaxy rankings',async()=>{
+ const app=createServer({file:null,globalFile:path.join(os.tmpdir(),'starfall-v55-'+crypto.randomUUID()+'.json'),galaxyId:'alpha'});
+ await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+ const base='http://127.0.0.1:'+app.server.address().port;
+ const post=(url,body,token)=>fetch(base+url,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+ try{
+  const joined=await(await post('/api/join',{name:'Pilot'})).json();
+  assert.equal(joined.recoveryCode.length,64);
+  const enrolled=await(await post('/api/recovery/enroll',{},joined.token)).json();
+  assert.equal((await post('/api/recover',{recoveryCode:joined.recoveryCode})).status,401);
+  const recovered=await(await post('/api/recover',{recoveryCode:enrolled.recoveryCode})).json();
+  assert.equal(recovered.empireId,joined.empireId);
+  assert.equal((await post('/api/recover',{recoveryCode:enrolled.recoveryCode})).status,401);
+  assert.equal((await fetch(base+'/api/profile',{headers:{Authorization:'Bearer '+joined.token}})).status,401);
+  const result=await(await fetch(base+'/api/global-leaderboard',{headers:{Authorization:'Bearer '+recovered.token}})).json();
+  assert.equal(result.leaders[0].galaxyId,'alpha');
+ }finally{await new Promise(resolve=>app.server.close(resolve));}
+});
