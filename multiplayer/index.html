@@ -117,7 +117,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 #planetScreen:not(.hidden) .planet-vista{animation:surfaceArrival .65s ease-out both}
 @keyframes surfaceArrival{from{opacity:.1;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){#planetScreen:not(.hidden) .planet-vista{animation:none}}
-</style></head>
+#mpAccountOverlay:not(.hidden){position:fixed;inset:0;z-index:400;background:#030917e8;display:flex;align-items:center;justify-content:center;padding:15px}#mpAccountOverlay input{font:inherit}</style></head>
 <body>
 <section id="titleScreen" aria-label="Starfall Dominion title screen">
  <div class="title-content">
@@ -147,8 +147,8 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
   </div>
  </div>
 </section>
-<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span></header>
-<main class="shell">
+<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span><div class="actions"><button id="mpProfile">👤 Profile</button><button id="mpLeaderboard">🏆 Leaderboard</button></div></header>
+<section id="mpAccountOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="Multiplayer profile and leaderboard"><div class="panel" style="width:min(95vw,580px);max-height:85vh;overflow:auto"><div class="actions" style="justify-content:space-between"><h2 id="mpAccountTitle">Commander</h2><button id="mpAccountClose">← Back</button></div><div id="mpAccountBody"></div></div></section><main class="shell">
 <section id="setup" class="panel">
 <h2>Join the persistent galaxy</h2>
 <p class="muted">Unlike the older local prototype, this galaxy runs on a server. Each person gets their own empire, and time keeps moving while players are offline.</p>
@@ -594,6 +594,29 @@ async function connectStream(){
  }
  connecting=false;
 }
+
+// The same token used for multiplayer orders authenticates profiles and rankings.
+async function showAccount(kind){
+ const overlay=$('mpAccountOverlay'),body=$('mpAccountBody');
+ overlay.classList.remove('hidden');$('mpAccountTitle').textContent=kind==='profile'?'👤 Commander Profile':'🏆 Galaxy Leaderboard';
+ body.replaceChildren();const status=document.createElement('p');status.textContent='Loading server data…';body.appendChild(status);
+ try{
+  if(!token)throw Error('Connect to a galaxy server first.');
+  const data=await request(kind==='profile'?'/api/profile':'/api/leaderboard');
+  body.replaceChildren();
+  if(kind==='profile'){
+   const info=document.createElement('p');info.textContent='Empire ID: '+data.profile.id+' · Rank: #'+(data.standing?.rank||'—')+' · Score: '+(data.standing?.score||0);body.appendChild(info);
+   const input=document.createElement('input');input.maxLength=24;input.value=data.profile.name;input.setAttribute('aria-label','Commander name');input.style.cssText='width:100%;padding:10px;margin:8px 0;background:#102443;color:white;border:1px solid #547ca2;border-radius:7px';body.appendChild(input);
+   const save=document.createElement('button');save.textContent='Save Commander Name';save.addEventListener('click',async()=>{try{await request('/api/profile',{name:input.value});showAccount('profile');}catch(e){message(e.message,true);}});body.appendChild(save);
+  }else{
+   for(const entry of data.leaders){const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:10px;padding:11px 2px;border-bottom:1px solid #314868';const name=document.createElement('strong');name.textContent='#'+entry.rank+' '+entry.name;const score=document.createElement('span');score.textContent=entry.score+' pts · '+entry.colonies+' colonies';row.append(name,score);body.appendChild(row);}
+   if(!data.leaders.length)body.textContent='No commanders have joined this galaxy yet.';
+  }
+ }catch(e){status.textContent=e.message;body.replaceChildren(status);}
+}
+$('mpProfile').addEventListener('click',()=>showAccount('profile'));
+$('mpLeaderboard').addEventListener('click',()=>showAccount('leaderboard'));
+$('mpAccountClose').addEventListener('click',()=>$('mpAccountOverlay').classList.add('hidden'));
 $('join').addEventListener('click',join);$('reconnect').addEventListener('click',reconnect);
 $('forget').addEventListener('click',()=>{try{const host=resolveApi();localStorage.removeItem(storageKey(host));token='';message('Local login removed. Your server empire still exists.');}catch(error){message(error.message,true);}});
 $('endpoint').value=localStorage.getItem('starfall-mp-server')||'';
