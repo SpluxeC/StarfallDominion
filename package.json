@@ -1,0 +1,13 @@
+{
+  "name": "starfall-dominion",
+  "version": "5.0.0-alpha",
+  "private": true,
+  "description": "Starfall Dominion real-time RTS multiplayer prototype",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node multiplayer/server.cjs",
+    "test": "node tests/smoke.cjs && node --test tests/rooms.test.cjs tests/multiplayer.test.cjs"
+  }
+}
