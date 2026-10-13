@@ -1,3 +1,23 @@
+# Multiplayer Alpha Implementation Status (October 2026)
+
+The repository now contains the first working **server-authoritative multiplayer alpha** in `multiplayer/`. This is separate from the earlier in-browser single-player RTS and older shared-snapshot relay.
+
+| Principle | Alpha implementation | Remaining work |
+|---|---|---|
+| No turn button | Server ticks continuously; all player orders are asynchronous | Balance time scales for long-term world |
+| Player-specific empires | Four unique, token-authenticated commanders | Account recovery, player slots, alliance support |
+| Server authoritative rules | Server validates and resolves colonization, fleets, combat, research, construction, trades and treaties | Broader anti-abuse hardening and combat replay |
+| Galaxy persistence | Atomic JSON save and bounded startup catch-up | Transactional DB, backups, replication, migrations |
+| Live state updates | Visibility-filtered SSE snapshots and reconnect | Incremental deltas and latency testing |
+| Fog / intelligence | Owned and nearby systems visible, hidden distant data and military events | Scouting ships and espionage |
+| Pirate rivals | Automatic pirate ship growth and raids | Multiple sophisticated NPC empires |
+| Recovery | Exile outposts and cooldown-based flotilla recovery | Political exile mechanics and faction persistence |
+| Deployable hosting | Node.js 22 server, Docker, Render blueprint, GitHub Pages client workflow | User-connected paid/public host and deployed HTTPS origin |
+
+**Important:** The public GitHub Pages client cannot advance a persistent universe by itself. The Node server must run on separate always-on hosting with durable disk. Gameplay simulation and basic core rules have passed local code checks; GitHub Actions tests have also passed on the QA pull request. End-to-end public hosting has not been confirmed.
+
+---
+
 # Starfall Dominion: RTS Non-Negotiables
 
 **Status:** Target architecture and gameplay design direction. The current v4.2 browser client is an early local proof of concept; these requirements are not yet fully implemented.
