@@ -24,7 +24,7 @@ const StarfallExpansion=(()=>{
   if(!Array.isArray(game.techs))game.techs=[];
   if(!game.aiStrategy||!PERSONALITIES[game.aiStrategy.personality]){
    const options=Object.keys(PERSONALITIES);
-   const seed=int(game.systems?.findIndex(s=>s.owner==='ai'))+int(game.battles||0);
+   const seed=Math.floor(Math.random()*options.length);
    game.aiStrategy={personality:options[seed%options.length],relations:-35,policy:'hostile',lastRaidAt:-999};
   }
   const ai=game.aiStrategy;
