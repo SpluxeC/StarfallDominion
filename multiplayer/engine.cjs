@@ -135,7 +135,7 @@ function arrival(s,f,at){
  const tech=attacker==='pirates'?null:s.empires[attacker],defTech=defender==='pirates'?null:s.empires[defender];
  const atk=f.ships*(tech&&tech.techs.includes('weapons')?1.35:1);
  const defense=x.ships+1+6*(x.buildings.fortress||0)+(defTech&&defTech.techs.includes('shields')?4:0);
- if(atk>defense){x.owner=attacker;x.ships=Math.max(1,Math.floor(f.ships-defense/(atk/f.ships)));x.level=1;x.buildings={mine:0,reactor:0,farm:0,shipyard:0,extractor:0};
+ if(atk>defense){x.owner=attacker;x.ships=Math.max(1,Math.floor(f.ships-defense/(atk/f.ships)));x.level=1;x.buildings={mine:0,reactor:0,farm:0,shipyard:0,extractor:0,foundry:0,laboratory:0,tradeHub:0,fortress:0,refinery:0};
   s.jobs=s.jobs.filter(j=>j.system!==at);
   log(s,(attacker==='pirates'?'Pirates':tech.name)+' conquered '+x.name,null,at);
  }else{x.ships=Math.max(0,x.ships-Math.max(1,Math.floor(atk/2)));log(s,'Fleet assault on '+x.name+' was repelled',null,at);}
