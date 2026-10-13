@@ -188,7 +188,7 @@ function render(){
  const owned=galaxy.systems.some(s=>s.owner===galaxy.you.id);
  if(!owned)acc.append(button('Establish exile recovery outpost',()=>command({type:'recover'}),galaxy.you.recoveryReadyAt>galaxy.time,true));
  acc.append(button('Change server / reconnect',showSetup));
- renderMap();renderSelected();renderResearch();renderDiplomacy();
+ const editingOrders=$('orders').contains(document.activeElement),editingDiplomacy=$('diplomacy').contains(document.activeElement);renderMap();if(!editingOrders)renderSelected();renderResearch();if(!editingDiplomacy)renderDiplomacy();
 }
 function acceptSnapshot(data){if(!data||!data.you||!Array.isArray(data.systems))return;if(!galaxy||data.version>=galaxy.version){galaxy=data;connected=true;render();}}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
@@ -214,5 +214,5 @@ $('join').addEventListener('click',join);$('reconnect').addEventListener('click'
 $('forget').addEventListener('click',()=>{try{const host=resolveApi();localStorage.removeItem(storageKey(host));token='';message('Local login removed. Your server empire still exists.');}catch(error){message(error.message,true);}});
 $('endpoint').value=localStorage.getItem('starfall-mp-server')||'';
 if(!$('endpoint').value&&!location.hostname.endsWith('github.io'))$('endpoint').placeholder='This server ('+location.origin+')';
-if($('endpoint').value&&localStorage.getItem(storageKey($('endpoint').value)))reconnect();
+try{const remembered=resolveApi();if(localStorage.getItem(storageKey(remembered)))reconnect();}catch{}
 </script></body></html>
