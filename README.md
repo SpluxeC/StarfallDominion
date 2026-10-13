@@ -1,4 +1,4 @@
-# Starfall Dominion — Browser Prototype v1.0
+# Starfall Dominion — Browser Playtest v2.0
 
 A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
 
@@ -63,3 +63,13 @@ In GitHub repository Settings → Pages, choose **Deploy from a branch**, **main
 - **v1.1:** Empire dashboard tracking colonies, rival territory, stationed ships, fleets in transit, and battle count.
 - **v1.2:** In-game How to Play guide with onboarding instructions.
 - Both versions retain migration from older browser save keys. The automated smoke test checks new UI elements.
+
+## v2.0 strategy playtest
+- Empire-wide **per-turn resource forecast**, including research income.
+- **AI difficulty** selection: Easy, Normal, or Hard. Difficulty influences rival fleet growth and attack frequency; settings persist in browser saves.
+- **Intel toggle**: conceal rival ship counts or reveal them for testing. This is a local debug/test aid, not a multiplayer intelligence system.
+- New smoke-test assertions for forecast, AI settings, and intel controls.
+- Existing local saves migrate from v1.2 and earlier known versions.
+
+### Status
+The game remains a standalone single-player prototype. The v2.0 source is committed, but a successful live-browser test and GitHub Pages deployment are not verified by the source commit alone.
