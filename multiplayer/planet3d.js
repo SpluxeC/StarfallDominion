@@ -5,7 +5,7 @@
 const CDN='https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 let THREE=null,renderer=null,scene=null,camera=null,globe=null,frame=0,host=null,select=null;
 let planetId=null,lastSignature='',targets=[],pickers=[],rotationX=.18,rotationY=-.7,targetX=.18,targetY=-.7,radius=9.8,targetRadius=9.8,pressed=null;
-let cleanup=[],active=false,loading=null;
+let cleanup=[],active=false,loading=null,mountEpoch=0,quality='medium',lastFrameTime=0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const palettes={
  gas:{ground:0x485c91,alt:0x647aa6,sky:0x90b7f7,emissive:0x8c6ed6},
@@ -21,6 +21,7 @@ function buildingColor(type){
 }
 function clearGlobe(){
  if(!globe)return;
+ targets=[];
  globe.traverse(obj=>{
   if(obj.geometry)obj.geometry.dispose();
   if(obj.material){for(const mat of (Array.isArray(obj.material)?obj.material:[obj.material]))mat.dispose();}
@@ -88,12 +89,23 @@ function buildGlobe(state){
  clearGlobe();
  const biome=palettes[state.deposit]||palettes.minerals;
  globe=new THREE.Group();scene.add(globe);
- const ground=mesh(new THREE.SphereGeometry(3,72,48),lit(biome.ground,{roughness:.86}));
- const overlays=mesh(new THREE.SphereGeometry(3.009,48,32),new THREE.MeshStandardMaterial({
+ const ground=mesh(new THREE.SphereGeometry(3,quality==='low'?32:64,quality==='low'?20:40),lit(biome.ground,{roughness:.91}));
+ // Subtle deterministic surface relief, avoiding external texture downloads.
+ const terrain=ground.geometry.attributes.position,vec=new THREE.Vector3();
+ for(let i=0;i<terrain.count;i++){
+  vec.fromBufferAttribute(terrain,i);
+  const n=vec.clone().normalize();
+  const waves=Math.sin(n.x*21+state.id*1.7)*Math.cos(n.z*18-n.y*7)+Math.sin(n.y*47+n.z*12)*.24;
+  const relief=1+Math.max(-.003,Math.min(.006,waves*.003));
+  vec.multiplyScalar(relief);
+  terrain.setXYZ(i,vec.x,vec.y,vec.z);
+ }
+ terrain.needsUpdate=true;ground.geometry.computeVertexNormals();
+ const overlays=mesh(new THREE.SphereGeometry(3.025,quality==='low'?24:48,quality==='low'?16:32),new THREE.MeshStandardMaterial({
   color:biome.alt,transparent:true,opacity:.19,wireframe:true,roughness:.8
  }));
  // Transparent blue atmospheric glow, seen around the limb.
- mesh(new THREE.SphereGeometry(3.12,48,32),new THREE.MeshBasicMaterial({
+ mesh(new THREE.SphereGeometry(3.12,quality==='low'?24:48,quality==='low'?16:32),new THREE.MeshBasicMaterial({
   color:biome.sky,transparent:true,opacity:.09,side:THREE.BackSide,depthWrite:false
  }));
  const positionCount=10,positions=[];
@@ -120,7 +132,7 @@ function buildGlobe(state){
  });
  // City population visual density grows with both colony level and real structures.
  const total=Object.values(state.buildings||{}).reduce((n,x)=>n+(Number(x)||0),0);
- const count=Math.min(140,Math.max(8,Math.floor(total*3+(state.level||1)*11)));
+ const count=Math.min(quality==='low'?50:140,Math.max(8,Math.floor(total*3+(state.level||1)*11)));
  for(let i=0;i<count;i++){
   const lat=Math.asin(-1+2*(i+.5)/count),lon=i*2.399963229728653+state.id*.42;
   const g=surfaceGroup(lat,lon),h=.04+(i*17%13)/210+Math.min(4,state.level||1)*.012;
@@ -152,13 +164,14 @@ function animate(){
  renderer.render(scene,camera);
 }
 async function mount(container,onSelect){
+ const epoch=++mountEpoch;
  host=container;select=onSelect;
  if(active)return true;
  if(loading)return loading;
  loading=(async()=>{
   try{
    THREE=THREE||await import(CDN);
-   if(!host||!host.isConnected)return false;
+   if(epoch!==mountEpoch||!host||!host.isConnected)return false;
    scene=new THREE.Scene();
    scene.background=new THREE.Color(0x060c1d);
    scene.add(new THREE.AmbientLight(0xa9c9ea,1.35));
@@ -166,7 +179,8 @@ async function mount(container,onSelect){
    const rim=new THREE.DirectionalLight(0x61c8ff,1.8);rim.position.set(4,-2,-5);scene.add(rim);
    camera=new THREE.PerspectiveCamera(45,1,.1,100);
    renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});
-   renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+   quality=window.matchMedia?.('(pointer:coarse)')?.matches?'low':'medium';
+   renderer.setPixelRatio(Math.min(quality==='low'?1.25:1.7,window.devicePixelRatio||1));
    renderer.outputColorSpace=THREE.SRGBColorSpace;
    container.replaceChildren(renderer.domElement);
    renderer.domElement.setAttribute('aria-label','Rotatable 3D planet. Drag to rotate, scroll or buttons to zoom, click a building to inspect.');
@@ -187,7 +201,8 @@ async function mount(container,onSelect){
      (e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);
     const ray=new THREE.Raycaster();ray.setFromCamera(xy,camera);
     const hits=ray.intersectObjects(pickers,false);
-    if(hits.length&&select)select(hits[0].object.userData.type);
+    const planetHit=ray.intersectObject(globe.children.find(obj=>obj.geometry?.type==='SphereGeometry'),false)[0];
+    if(hits.length&&(!planetHit||hits[0].distance<=planetHit.distance+.25)&&select)select(hits[0].object.userData.type);
    });
    addListener(canvas,'pointercancel',()=>{pressed=null;});
    addListener(canvas,'wheel',e=>{e.preventDefault();zoom(e.deltaY>0?-.35:.35);},{passive:false});
@@ -216,6 +231,7 @@ function update(state){
 function zoom(delta){targetRadius=clamp(targetRadius-delta,5.2,15.5);}
 function reset(){targetX=.18;targetY=-.7;targetRadius=9.8;}
 function unmount(){
+ mountEpoch++;
  active=false;cancelAnimationFrame(frame);cleanup.splice(0).forEach(fn=>fn());
  clearGlobe();
  if(renderer){renderer.dispose();renderer.domElement.remove();renderer=null;}
