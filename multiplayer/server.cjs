@@ -70,7 +70,12 @@ function createServer(options={}){
   const url=new URL(req.url,'http://localhost');
   try{
    if(req.method==='GET'&&(url.pathname==='/'||url.pathname==='/multiplayer/'||url.pathname==='/index.html')){
-    const html=fs.readFileSync(CLIENT);res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"});return res.end(html);
+    const html=fs.readFileSync(CLIENT);res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; connect-src 'self' https: http://localhost:* http://127.0.0.1:*; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; base-uri 'none'; frame-ancestors 'none'"});return res.end(html);
+   }
+   if(req.method==='GET'&&(url.pathname==='/planet3d.js'||url.pathname==='/multiplayer/planet3d.js')){
+    const js=fs.readFileSync(path.join(__dirname,'planet3d.js'));
+    res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8','Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});
+    return res.end(js);
    }
    if(req.method==='GET'&&url.pathname==='/api/health')return reply(res,200,{ok:true,simulation:'realtime',galaxyTime:Math.floor(galaxy.time),players:Object.keys(galaxy.empires).length,capacity:4});
    if(req.method==='POST'&&url.pathname==='/api/join'){
