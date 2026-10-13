@@ -102,6 +102,10 @@ assert.equal(run('legacy.ceasefireEndsAt'),100,'Legacy ceasefires migrate into t
 assert.equal(run('legacy.systems[0].level'),1);
 assert.equal(run('legacy.jobs.length'),0);
 
+run('game=initial();selected=0;');
+for(let i=0;i<45;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems.filter(s=>s.owner==="ai").length'),1,'Normal AI does not expand during its opening grace period');
+assert.ok(run('game.systems[4].ships')<=30,'AI garrison production is capped');
 assert.ok(html.includes('id="soloTitle"')&&html.includes('id="soloPlanet"'),'Single-player title and planet screens exist');
 assert.ok(html.includes('src="multiplayer/planet3d.js"'),'Single-player shares multiplayer 3D viewer');
 assert.equal(run('SOLO_DISTRICTS.length'),10,'Ten interactive planetary districts exist');
