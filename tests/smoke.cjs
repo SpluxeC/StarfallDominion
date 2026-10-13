@@ -121,6 +121,15 @@ assert.ok(run('game.jobs.some(j=>j.type==="laboratory")'),'Advanced level-two di
 for(let i=0;i<8;i++)run('stepSimulation(3)');
 assert.ok(run('game.systems[0].laboratory')>=1,'Laboratory completes');
 assert.ok(run('productionForecast().research')>=13,'Laboratory produces science');
+run('game=initial();selected=0;game.resources.credits=1000;game.resources.food=1000;game.resources.alloys=1000;');
+run('build("troops")');
+assert.ok(run('game.jobs.some(j=>j.type==="troops")'),'Troops can be trained at a shipyard');
+for(let i=0;i<4;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].troops'),5,'Training produces five troops');
+run('game.systems[0].ships=10;send(1)');
+assert.equal(run('game.fleets[0].troops'),5,'Troops travel with assault fleets');
+assert.equal(run('game.systems[0].troops'),0,'Dispatched troops leave the colony');
+assert.ok(html.includes('⚔ Attack '),'Explicit AI attack buttons exist');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
