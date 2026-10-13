@@ -219,12 +219,12 @@ assert.ok(html.includes('district-progress-slot'),'Building progress bars remain
 assert.ok(html.includes('battle-pulse'),'Galaxy combat effects are present');
 
 
-run('game=initial();selected=0;game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000;');
+run('game=initial();selected=1;game.systems[1].owner="player";game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000;');
 const beforeOutpost=run('productionForecast().credits');
 run('build("outpost")');
-assert.ok(run('game.jobs.some(j=>j.type==="outpost")'),'Outpost can be constructed');
+assert.ok(run('game.jobs.some(j=>j.type==="outpost")'),'Outpost can be constructed on expansion colony');
 for(let i=0;i<6;i++)run('stepSimulation(3)');
-assert.equal(run('game.systems[0].outpost'),1,'Outpost construction completes');
+assert.equal(run('game.systems[1].outpost'),1,'Outpost construction completes');
 assert.equal(run('productionForecast().credits'),beforeOutpost+4,'Outpost increases credit income');
 run('build("marines");build("armor")');
 assert.ok(run('game.jobs.some(j=>j.type==="marines")'),'Marines are queued in the Fleet training system');
