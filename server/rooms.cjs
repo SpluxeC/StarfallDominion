@@ -1,12 +1,12 @@
 'use strict';
-// Experimental turn-sharing backend. No dependencies. Not production authentication or multiplayer.
+// Experimental whole-snapshot relay. NOT authoritative real-time multiplayer or secure production hosting.
 const http=require('node:http');
 const crypto=require('node:crypto');
 const PORT=Number(process.env.PORT||8787);
 const origins=(process.env.ALLOWED_ORIGINS||'https://spluxec.github.io,http://localhost:3000,http://127.0.0.1:3000').split(',').map(s=>s.trim());
 const rooms=new Map();
 function response(res,status,obj){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(obj));}
-function isValidState(s){return s&&typeof s==='object'&&Number.isInteger(s.turn)&&s.turn>0&&s.resources&&Array.isArray(s.systems)&&s.systems.length===9&&Array.isArray(s.fleets)&&Array.isArray(s.logs)&&s.logs.length<=1000&&s.systems.every(x=>x&&typeof x.name==='string'&&Number.isInteger(x.ships)&&x.ships>=0);}
+function isValidState(s){return s&&typeof s==='object'&&((Number.isFinite(s.elapsedSeconds)&&s.elapsedSeconds>=0)||(Number.isInteger(s.turn)&&s.turn>0))&&s.resources&&Array.isArray(s.systems)&&s.systems.length===9&&Array.isArray(s.fleets)&&Array.isArray(s.logs)&&s.logs.length<=1000&&s.systems.every(x=>x&&typeof x.name==='string'&&Number.isInteger(x.ships)&&x.ships>=0);}
 function parseBody(req){return new Promise((resolve,reject)=>{let raw='';req.on('data',chunk=>{raw+=chunk;if(raw.length>300000){reject(Error('Payload too large'));req.destroy();}});req.on('end',()=>{try{resolve(JSON.parse(raw));}catch{reject(Error('Invalid JSON'));}});req.on('error',reject);});}
 const server=http.createServer(async(req,res)=>{
  const origin=req.headers.origin;
