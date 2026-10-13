@@ -94,6 +94,7 @@ function buildDistrict(group,type,level,queued){
    cyl(.07,.10,H*.8,0,.12+H*.4,-.14,steel);
    const dish=cyl(.14,.035,.055,0,.19+H*.8,-.14,glow);dish.rotation.z=.3;
   }
+ }else if(type==='outpost'){box(.31,H*.72,.29,0,.12+H*.36,0,armor);cyl(.04,.04,H*.8,0,.16+H*.78,0,steel);cyl(.09,.09,.04,0,.20+H*1.55,0,glow);for(const side of [-1,1])box(.10,.10,.10,side*.19,.13,0,dark);
  }else if(type==='shipyard'){
   box(.48,.07,.31,0,.12,0,dark);
   for(const side of [-1,1]){
