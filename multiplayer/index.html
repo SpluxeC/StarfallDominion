@@ -336,7 +336,7 @@ function render(){
  const acc=$('account');acc.replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Identity is saved locally for this server. Losing your token means losing access to this empire.';acc.append(p);
  const owned=galaxy.systems.some(s=>s.owner===galaxy.you.id);
  if(!owned)acc.append(button('Establish exile recovery outpost',()=>command({type:'recover'}),galaxy.you.recoveryReadyAt>galaxy.time,true));
- acc.append(button('Change server / reconnect',showSetup));
+ acc.append(button('Main Menu',showTitle));acc.append(button('Change server / reconnect',showSetup));
  const editingOrders=$('orders').contains(document.activeElement),editingDiplomacy=$('diplomacy').contains(document.activeElement);renderMap();if(!editingOrders)renderSelected();renderResearch();if(!editingDiplomacy)renderDiplomacy();if(screen==='planet')renderPlanet();
 }
 function acceptSnapshot(data){if(!data||!data.you||!Array.isArray(data.systems))return;if(!galaxy||data.version>=galaxy.version){galaxy=data;connected=true;render();}}
