@@ -36,12 +36,16 @@ function createServer(options={}){
   fs.writeFileSync(tmp,JSON.stringify({galaxy,sessions,savedWall:Date.now()}),{mode:0o600});
   fs.renameSync(tmp,file);dirty=false;
  }
- function allowed(origin){if(!origin)return true;if(origins.includes(origin))return true;
-  try{const u=new URL(origin);return (u.hostname==='localhost'||u.hostname==='127.0.0.1')&&['http:','https:'].includes(u.protocol);}catch{return false;}
+ function allowed(origin,req){if(!origin)return true;if(origins.includes(origin))return true;
+  try{
+   const u=new URL(origin),host=req.headers['x-forwarded-host']||req.headers.host;
+   if(host&&u.host===host)return true; // Permit same-origin clients behind HTTPS proxies.
+   return (u.hostname==='localhost'||u.hostname==='127.0.0.1')&&['http:','https:'].includes(u.protocol);
+  }catch{return false;}
  }
  function cors(req,res){
   const origin=req.headers.origin;
-  if(origin&&!allowed(origin))return false;
+  if(origin&&!allowed(origin,req))return false;
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
   res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type, X-Requested-With');
   res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
