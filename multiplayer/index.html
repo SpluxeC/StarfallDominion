@@ -94,6 +94,18 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 .surface-inspector{margin:12px 0}
 .surface-inspector h2{margin-bottom:5px}
 @media(max-width:650px){.planet-vista{min-height:330px}.surface-tools{top:auto;bottom:12px}.colony-legend{bottom:12px}}
+
+/* Biome, infrastructure and civilian traffic visual milestone */
+#colonyScene .civilian-vehicle{pointer-events:none;animation:surfaceTraffic 13s linear infinite;transform-box:fill-box;transform-origin:center}
+#colonyScene .civilian-vehicle.alt{animation-duration:18s;animation-direction:reverse}
+#colonyScene .traffic-glow{filter:drop-shadow(0 0 4px #9ff9ff)}
+#colonyScene .sky-transport{animation:skyTransit 24s linear infinite;pointer-events:none}
+#colonyScene .sky-transport.alt{animation-duration:31s;animation-delay:-13s}
+#colonyScene .construction-crane{animation:constructionPulse 1.8s ease-in-out infinite alternate;pointer-events:none}
+#colonyScene .city-window{animation:beaconFlash 4s ease-in-out infinite}
+@keyframes surfaceTraffic{0%{transform:translateX(-90px)}100%{transform:translateX(1060px)}}
+@keyframes skyTransit{0%{transform:translateX(-150px)}100%{transform:translateX(1150px)}}
+@media(prefers-reduced-motion:reduce){#colonyScene .civilian-vehicle,#colonyScene .sky-transport,#colonyScene .construction-crane,#colonyScene .city-window{animation:none!important}}
 </style></head>
 <body>
 <section id="titleScreen" aria-label="Starfall Dominion title screen">
@@ -274,6 +286,59 @@ function openPlanet(id){
 }
 function closePlanet(){surfaceSelection=null;planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
 function showTitle(){if(screen==='planet')closePlanet();screen='title';$('titleScreen').classList.remove('hidden');}
+function colonyBiome(s){
+ const deposits={
+  gas:{name:'Stormworld',sky:'#19264c',horizon:'#4a6491',ground:'#26394f',accent:'#a1c5ff'},
+  titanium:{name:'Iron Highlands',sky:'#211d39',horizon:'#8b6177',ground:'#55404c',accent:'#e3a9a0'},
+  crystals:{name:'Crystal Expanse',sky:'#132a4c',horizon:'#3a7791',ground:'#28536a',accent:'#a4f8ff'},
+  minerals:{name:'Frontier Badlands',sky:'#2a2639',horizon:'#aa745c',ground:'#69504c',accent:'#ffca90'}
+ };
+ return deposits[s.deposit]||deposits.minerals;
+}
+function colonyEnvironment(s){
+ const b=colonyBiome(s),seed=s.id*17+3;
+ let art='<rect x="0" y="0" width="1000" height="350" fill="'+b.sky+'"/>';
+ art+='<path d="M0 150 Q190 65 340 135 T700 112 T1000 128 V350 H0Z" fill="'+b.horizon+'" opacity=".27"/>';
+ if(s.deposit==='gas'){
+  for(let i=0;i<6;i++){const x=(i*185+seed*13)%1000;art+='<ellipse cx="'+x+'" cy="'+(58+i%3*35)+'" rx="'+(100+i%2*25)+'" ry="17" fill="#a5b5ee" opacity=".12"/>';}
+  art+='<path d="M0 210 Q210 190 380 210 T760 205 T1000 212" fill="none" stroke="#c1b9ff" stroke-width="4" opacity=".3"/>';
+ }else if(s.deposit==='crystals'){
+  for(let i=0;i<13;i++){const x=(i*83+seed*9)%1000,y=252+i%4*8,height=22+(i*7)%38;art+='<path d="M'+(x-11)+' '+y+' L'+x+' '+(y-height)+' L'+(x+13)+' '+y+'Z" fill="'+b.accent+'" opacity=".22" stroke="#a8e9ff" stroke-width="2"/>';}
+ }else if(s.deposit==='titanium'){
+  art+='<path d="M0 256 L95 205 L175 249 L320 184 L410 260 L575 206 L675 255 L840 192 L1000 250 V350 H0Z" fill="#7b6577" opacity=".5"/>';
+  for(let i=0;i<8;i++){const x=i*145+seed%50;art+='<path d="M'+x+' 255 l20 -42 l25 42" fill="none" stroke="#c9a3b2" stroke-width="4" opacity=".35"/>';}
+ }else{
+  art+='<path d="M0 256 L145 221 L245 249 L405 211 L535 257 L685 221 L830 252 L950 209 L1000 235 V350 H0Z" fill="#ae806a" opacity=".38"/>';
+  for(let i=0;i<11;i++){const x=(i*107+seed*5)%1000;art+='<ellipse cx="'+x+'" cy="'+(270+i%3*8)+'" rx="22" ry="6" fill="#dfb78b" opacity=".15"/>';}
+ }
+ return art;
+}
+function colonyInfrastructure(s){
+ const level=Math.max(1,s.level||1),total=Object.values(s.buildings||{}).reduce((sum,v)=>sum+(Number(v)||0),0);
+ const intensity=Math.min(5,Math.floor(total/3)+level-1);
+ let art='<g aria-hidden="true">';
+ // Two tiers of interconnected roads scale with colony development.
+ art+='<path d="M0 303 Q250 291 500 305 T1000 301" stroke="#0a162a" stroke-width="21" fill="none"/>';
+ art+='<path d="M0 303 Q250 291 500 305 T1000 301" stroke="#54788e" stroke-width="3" stroke-dasharray="22 16" fill="none" opacity=".85"/>';
+ if(level>=2)art+='<path d="M0 327 Q250 315 500 328 T1000 325" stroke="#142d3c" stroke-width="13" fill="none"/><path d="M0 327 Q250 315 500 328 T1000 325" stroke="#79a9b7" stroke-width="2" stroke-dasharray="12 12" fill="none"/>';
+ for(let i=0;i<10;i++){
+  const x=69+i*95,y=285+(i%3)*8;
+  art+='<path d="M'+x+' '+y+' L'+x+' 302" stroke="#86b8c9" stroke-width="4" opacity=".65"/>';
+ }
+ // Settlement density expands with level and actual developed structures.
+ for(let i=0;i<intensity*7;i++){
+  const x=(i*73+s.id*29)%975+10,y=258+(i%3)*10,w=9+(i%4)*3,ht=13+(i*11)%34+level*3;
+  art+='<rect x="'+x+'" y="'+(y-ht)+'" width="'+w+'" height="'+ht+'" rx="2" fill="#18374f" stroke="#7194a8" stroke-width="1" opacity=".82"/>';
+  art+='<rect class="city-window" x="'+(x+3)+'" y="'+(y-ht+8)+'" width="3" height="4" fill="#a9f7ff" opacity=".8"/>';
+ }
+ if(total>0){
+  const vehicles=Math.min(6,Math.max(1,Math.floor(total/2)));
+  for(let i=0;i<vehicles;i++)art+='<g class="civilian-vehicle '+(i%2?'alt':'')+'" style="animation-delay:-'+(i*3)+'s"><rect class="traffic-glow" x="'+(i*150-90)+'" y="'+(298+i%2*24)+'" width="20" height="7" rx="3" fill="'+(i%2?'#ffcb87':'#80e7ff')+'"/><circle cx="'+(i*150-84)+'" cy="'+(306+i%2*24)+'" r="3" fill="#b9faff"/></g>';
+  if(level>=3)for(let i=0;i<Math.min(level,3);i++)art+='<g class="sky-transport '+(i%2?'alt':'')+'"><path d="M'+(i*240-120)+' '+(140+i*19)+' l35 -7 l-9 15 h-28Z" fill="#a8e9ff" opacity=".7"/></g>';
+ }
+ return art+'</g>';
+}
+
 function renderColonyScene(s){
  const svg=$('colonyScene');
  const owned=s.buildings||{},jobs=galaxy.jobs.filter(j=>j.system===s.id),types=DISTRICTS.filter(d=>(owned[d.type]||0)>0||jobs.some(j=>j.type===d.type));
@@ -281,8 +346,10 @@ function renderColonyScene(s){
  const plotPositions=DISTRICTS.map((d,i)=>({d,x:35+i*95,y:285+(i%3)*8,w:68}));
  const terrain=s.deposit==='gas'?'#28465e':s.deposit==='titanium'?'#454d6b':s.deposit==='crystals'?'#334f70':'#365c67';
  let art='<defs><linearGradient id="groundGlow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+terrain+'"/><stop offset="1" stop-color="#071020"/></linearGradient><linearGradient id="towerMetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#668cae"/><stop offset=".45" stop-color="#263c5c"/><stop offset="1" stop-color="#101b34"/></linearGradient></defs>';
+ art+=colonyEnvironment(s);
  art+='<path d="M0 260 Q160 225 290 256 T600 249 T1000 260 V350 H0Z" fill="url(#groundGlow)"/>';
  art+='<path d="M0 288 Q240 265 440 290 T1000 285" fill="none" stroke="#65b3cd" stroke-width="2" opacity=".35"/>';
+ art+=colonyInfrastructure(s);
  // Each constructed building has its own recognizable silhouette. The silhouette grows with level.
  const shape=(type,x,y,w,height,level,underConstruction)=>{
   const H=height+Math.min(4,level-1)*11,Y=y-H,extra=level>1?'<path d="M'+(x+8)+' '+(Y+22)+' H'+(x+w-8)+' M'+(x+8)+' '+(Y+38)+' H'+(x+w-8)+'" stroke="#79b7d8" stroke-width="2" opacity=".6"/>':'';
@@ -308,6 +375,7 @@ function renderColonyScene(s){
   art+='<rect class="district-outline" x="'+(x-8)+'" y="'+yTop+'" width="'+(w+16)+'" height="164" rx="8"/>';
   if(count||queued)art+=shape(d.type,x,y,w,58+(i%3)*13,count||1,queued&&count===0);
   else art+='<path class="empty-pad" d="M'+x+' '+y+' l15 -14 h'+(w-30)+' l15 14 l-15 10 h-'+(w-30)+'Z"/><path d="M'+(x+w/2)+' '+(y-39)+' v27 M'+(x+w/2-12)+' '+(y-25)+' h24" stroke="#b6ddec" stroke-width="4"/>';
+  if(queued)art+='<g class="construction-crane" aria-hidden="true"><path d="M'+(x+w/2)+' '+(y-115)+' V'+(y-160)+' H'+(x+w+10)+'" fill="none" stroke="#ffdc8a" stroke-width="3"/><path d="M'+(x+w+5)+' '+(y-160)+' V'+(y-140)+'" stroke="#ffdc8a" stroke-width="2"/><circle cx="'+(x+w+5)+'" cy="'+(y-138)+'" r="4" fill="#ffe3aa"/></g>';
   if(queued)art+='<path class="active-construction" d="M'+(x-5)+' '+(y+4)+' V'+(y-112)+' H'+(x+w+5)+' V'+(y+4)+'" stroke="#fbd27a" stroke-width="2" stroke-dasharray="6 6" fill="none"/>';
   art+='<text class="district-label" x="'+(x+w/2)+'" y="'+(y-122)+'" text-anchor="middle">'+(i+1)+'. '+(count?'Lv '+count:queued?'Building':'Empty')+'</text></g>';
  });
@@ -362,7 +430,7 @@ function renderPlanet(){
  if(screen!=='planet'||!galaxy)return;
  const s=galaxy.systems[planetSystem];if(!s||!own(s)){closePlanet();message('Colony no longer controlled by your empire.',true);return;}
  $('planetTitle').textContent=s.name+' — Colony Command';$('planetVistaName').textContent=s.name;
- $('planetVistaDescription').textContent='Level '+s.level+' · '+s.deposit+' deposit · '+s.ships+' stationed ships';
+ $('planetVistaDescription').textContent='Level '+s.level+' · '+colonyBiome(s).name+' · '+s.ships+' stationed ships';
  renderColonyScene(s);
  const stats=$('planetStats');stats.replaceChildren();
  for(const [name,value] of [['Colony level',s.level],['Active jobs',galaxy.jobs.filter(j=>j.system===s.id).length+'/4'],['Ships',s.ships],['Deposit',s.deposit]])stats.append(badge(name+': '+value));
