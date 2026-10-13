@@ -13,3 +13,5 @@ jobs:
           node-version: '22'
       - run: node tests/smoke.cjs
       - run: node --test tests/rooms.test.cjs
+
+      - run: node --test tests/rooms.test.cjs
