@@ -30,7 +30,7 @@ const StarfallExpansion=(()=>{
   const ai=game.aiStrategy;
   ai.relations=Math.max(-100,Math.min(100,Number.isFinite(ai.relations)?ai.relations:-35));
   if(!['hostile','neutral','truce'].includes(ai.policy))ai.policy='hostile';
-  if(!Number.isFinite(ai.lastRaidAt))ai.lastRaidAt=-999;
+  if(!Number.isFinite(ai.lastRaidAt))ai.lastRaidAt=-999;if(ai.policy==='truce'&&game.elapsedSeconds>=(game.ceasefireEndsAt||0))ai.policy=ai.relations>=0?'neutral':'hostile';
   for(const system of game.systems||[]){
    if(!system.specialization)system.specialization='balanced';
    if(!Number.isFinite(system.prosperity))system.prosperity=50;
