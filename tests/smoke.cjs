@@ -12,7 +12,7 @@ const context={document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v
 vm.createContext(context);vm.runInContext(script,context,{timeout:3000});
 assert.match(document.getElementById('turnLabel').textContent,/Turn 1/);
 assert.ok(document.getElementById('actions').children.length>0);
-assert.ok(document.getElementById('objectives').children.length===5);
+assert.ok(document.getElementById('objectives').children.length===6);
 assert.ok(document.getElementById('research').children.length>0);
 vm.runInContext('nextTurn()',context,{timeout:3000});
 assert.match(document.getElementById('turnLabel').textContent,/Turn 2/);
@@ -24,5 +24,11 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v03'));
+assert.ok(store.has('starfall-dominion-v09'));
+assert.ok(document.getElementById('export'));
+assert.ok(document.getElementById('diplomacy').children.length>0);
+vm.runInContext('game.resources.credits=200;negotiate()',context,{timeout:3000});
+assert.equal(vm.runInContext('game.relations',context),'Ceasefire');
+assert.ok(vm.runInContext('game.ceasefireUntil',context)>2);
+
 console.log('PASS: initial render, objectives, research UI, turn, colonization, fleet building, research, movement, persistence');
