@@ -58,6 +58,22 @@ test('exiled player can recover and keep its identity',()=>{
  assert.equal(s.systems.filter(x=>x.owner===a.id).length,1);
  assert.ok(a.recoveryReadyAt>0);
 });
+test('recovery flotilla remains possible when there are no neutral systems',()=>{
+ const s=engine.newGalaxy(),a=engine.addEmpire(s,ids[0],'Exile');
+ for(const x of s.systems){x.owner='pirates';x.ships=1;}
+ engine.order(s,a.id,{type:'recover'});
+ assert.equal(s.fleets.length,1,'A recovery flotilla launches instead of deleting the player');
+ assert.equal(s.fleets[0].owner,a.id);
+ engine.tick(s,16);
+ assert.ok(s.systems.some(x=>x.owner===a.id),'Recovery flotilla can establish new territory');
+});
+test('private events and distant territorial changes are obscured by fog',()=>{
+ const s=engine.newGalaxy(),a=engine.addEmpire(s,ids[0],'Alpha'),b=engine.addEmpire(s,ids[1],'Beta');
+ engine.order(s,b.id,{type:'fleet',from:5,to:4,ships:2});
+ const view=engine.snapshot(s,a.id);
+ assert.ok(!view.events.some(ev=>ev.message.includes('dispatched')&&ev.message.includes('Kestrel')),'Enemy orders are not public intelligence');
+ assert.equal(view.systems[5].visible,false);
+});
 test('client source has live updates, authenticated commands and no turn button',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
  assert.match(html,/api\/events/);assert.match(html,/api\/command/);
