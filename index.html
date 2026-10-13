@@ -169,7 +169,321 @@ body[data-active-deck="intel"] .sidebar{width:100%}
 })();
 
 (function(){const buttons=[...document.querySelectorAll('[data-command-tab]')],panels=[...document.querySelectorAll('[data-tab-panel]')];function activate(tab){document.body.dataset.activeDeck=tab;if(!buttons.some(b=>b.dataset.commandTab===tab&&!b.hidden))tab='colony';buttons.forEach(b=>{const active=b.dataset.commandTab===tab;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});panels.forEach(p=>p.hidden=p.dataset.tabPanel!==tab);document.body.dataset.activeDeck=tab;if(tab==='settings'&&typeof window.renderSettingsProgress==='function')window.renderSettingsProgress();if(window.matchMedia('(max-width:900px)').matches){document.querySelector('.sidebar')?.scrollIntoView({block:'start',behavior:'smooth'});}try{sessionStorage.setItem('starfall-command-tab',tab)}catch(e){}}buttons.forEach(b=>b.addEventListener('click',()=>activate(b.dataset.commandTab)));let saved='colony';try{saved=sessionStorage.getItem('starfall-command-tab')||saved}catch(e){}activate(saved);const drawer=document.getElementById('resourceDrawer'),toggle=document.getElementById('resourceToggle');function setCollapsed(collapsed){drawer.classList.toggle('collapsed',collapsed);toggle.setAttribute('aria-expanded',String(!collapsed));toggle.firstChild.textContent=collapsed?'▸ Resources ':'▾ Resources ';try{localStorage.setItem('starfall-resource-collapsed',collapsed?'1':'0')}catch(e){}}let collapsed=false;try{collapsed=localStorage.getItem('starfall-resource-collapsed')==='1'}catch(e){}setCollapsed(collapsed);toggle.addEventListener('click',()=>setCollapsed(!drawer.classList.contains('collapsed')));})();</script><footer>Local test prototype — no multiplayer, accounts, or server persistence yet. All gameplay values are experimental.</footer>
-<script src="resource-icons.js"></script><script src="combat-v66.js"></script><script src="economy-v67.js"></script><script src="expansion-v69.js"></script>
+<script src="resource-icons.js"></script><script>
+/* Starfall Dominion v6.6 — deterministic, per-ship tactical combat.
+   Deliberately independent of the map, UI and resource economy. */
+'use strict';
+const StarfallCombat = (() => {
+  const STATS = Object.freeze({
+    corvette: {hull:10, shield:2, armor:0.02, dps:1.3, target:['frigate','corvette','cruiser'], bonus:{frigate:1.15}},
+    frigate:  {hull:24, shield:8, armor:0.12, dps:3.2, target:['corvette','frigate','cruiser'], bonus:{corvette:1.35}},
+    cruiser:  {hull:50, shield:18,armor:0.25, dps:6.5, target:['cruiser','frigate','corvette'], bonus:{cruiser:1.30}}
+  });
+  const TYPES = ['corvette','frigate','cruiser'];
+  const integer = n => Math.max(0, Math.floor(Number.isFinite(Number(n)) ? Number(n) : 0));
+  function composition(f) {
+    const ships = Math.min(5000, integer(f.ships));
+    const cruisers = Math.min(ships,integer(f.cruisers));
+    const frigates = Math.min(ships-cruisers,integer(f.frigates));
+    return {corvette:ships-frigates-cruisers,frigate:frigates,cruiser:cruisers};
+  }
+  function createUnits(f, shieldTech=false) {
+    const roster=composition(f), units=[];
+    for (const type of TYPES) for(let i=0;i<roster[type];i++)
+      units.push({type,hull:STATS[type].hull,shield:STATS[type].shield+(shieldTech?3:0)});
+    return units;
+  }
+  function summary(units) {
+    const result={ships:0,corvette:0,frigate:0,cruiser:0,hull:0,shield:0,maxHull:0,maxShield:0};
+    for(const u of units||[]) {
+      if(!u||!STATS[u.type]||!Number.isFinite(u.hull)||u.hull<=0)continue;
+      result.ships++;result[u.type]++;
+      result.hull+=u.hull;result.shield+=Math.max(0,u.shield||0);
+      result.maxHull+=STATS[u.type].hull;
+      result.maxShield+=STATS[u.type].shield+(u.techShield?3:0);
+    }
+    return result;
+  }
+  function legacyUnits(f, legacyHull) {
+    const units=createUnits(f);
+    if(!Number.isFinite(legacyHull))return units;
+    // Existing v6.5 battles stored one aggregate hull pool. Convert it once;
+    // never synthesize lost ships back into a saved fight.
+    let damage=Math.max(0,summary(units).hull-Math.max(0,legacyHull));
+    for(const u of units) {
+      if(damage<=0)break;
+      const hit=Math.min(damage,u.hull);
+      u.hull-=hit;u.shield=0;damage-=hit;
+    }
+    return units.filter(u=>u.hull>0);
+  }
+  function ensure(e) {
+    if(!Array.isArray(e.attackUnits))e.attackUnits=legacyUnits({ships:e.attackShips,frigates:e.attackFrigates,cruisers:e.attackCruisers},e.attackHP);
+    if(!Array.isArray(e.defendUnits))e.defendUnits=legacyUnits({ships:e.defendShips,frigates:e.defendFrigates,cruisers:e.defendCruisers},e.defendHP);
+    if(!e.attackStart)e.attackStart=composition({ships:e.attackShips,frigates:e.attackFrigates,cruisers:e.attackCruisers});
+    if(!e.defendStart)e.defendStart=composition({ships:e.defendShips,frigates:e.defendFrigates,cruisers:e.defendCruisers});
+    sync(e);
+    return e;
+  }
+  function sync(e) {
+    const a=summary(e.attackUnits),d=summary(e.defendUnits);
+    e.attackShips=a.ships;e.attackFrigates=a.frigate;e.attackCruisers=a.cruiser;e.attackHP=a.hull;
+    e.defendShips=d.ships;e.defendFrigates=d.frigate;e.defendCruisers=d.cruiser;e.defendHP=d.hull;
+    return {attack:a,defense:d};
+  }
+  function start(e, attacker, defender, attackerShieldTech=false, defenderShieldTech=false) {
+    e.attackUnits=createUnits(attacker,attackerShieldTech);
+    e.defendUnits=createUnits(defender,defenderShieldTech);
+    e.attackStart=composition(attacker);
+    e.defendStart=composition(defender);
+    sync(e);
+    return e;
+  }
+  function reinforce(e, side, fleet, shieldTech=false) {
+    ensure(e);
+    const key=side==='attack'?'attackUnits':'defendUnits';
+    const initial=side==='attack'?'attackStart':'defendStart';
+    const roster=composition(fleet);
+    e[key].push(...createUnits(fleet,shieldTech));
+    for(const type of TYPES)e[initial][type]=(e[initial][type]||0)+roster[type];
+    sync(e);
+  }
+  function volleyPlan(units, boost, dt, fortress=0) {
+    const counts=summary(units);
+    return TYPES.map(type=>({type,damage:counts[type]*STATS[type].dps*boost*dt}))
+      .concat(fortress>0?[{type:'corvette',damage:fortress*2*dt}]:[]);
+  }
+  function strike(targets,volley,armorBonus=0) {
+    let amount=volley.damage,iterations=0;
+    const attacker=STATS[volley.type];
+    while(amount>0.00001&&iterations++<10000) {
+      let unit;
+      for(const desired of attacker.target) {
+        unit=targets.find(u=>u.type===desired&&u.hull>0);
+        if(unit)break;
+      }
+      if(!unit)break;
+      const bonus=attacker.bonus[unit.type]||1;
+      const takeShield=Math.min(Math.max(0,unit.shield||0),amount*bonus);
+      unit.shield=Math.max(0,(unit.shield||0)-takeShield);
+      amount-=takeShield/bonus;
+      if(amount<=0.00001)break;
+      const protection=Math.min(0.65,STATS[unit.type].armor+armorBonus);
+      const needed=unit.hull/(bonus*(1-protection));
+      const spent=Math.min(amount,needed);
+      unit.hull=Math.max(0,unit.hull-spent*bonus*(1-protection));
+      amount-=spent;
+      if(unit.hull<=0.00001){unit.hull=0;unit.shield=0;}
+    }
+  }
+  function advance(e,dt,context={}) {
+    ensure(e);
+    if(!Number.isFinite(dt)||dt<=0)return sync(e);
+    // Snapshots make volleys simultaneous: units destroyed this tick still fire.
+    const attack=volleyPlan(e.attackUnits,(context.attackWeapons?1.6:1)*(context.advancedWeapons?1.25:1)*(context.commandNet?1.2:1)*(context.attackMilitary?1.2:1)*(context.guard?0.75:1),dt);
+    const defend=volleyPlan(e.defendUnits,1,dt,Math.max(0,context.fortress||0)+(context.defendShields?1:0));
+    for(const shot of attack)strike(e.defendUnits,shot,context.defendShields?0.08:0);
+    for(const shot of defend)strike(e.attackUnits,shot,context.guard?0.07:context.reinforcedHulls?0.2:context.attackShields?0.08:0);
+    e.attackUnits=e.attackUnits.filter(u=>u.hull>0);
+    e.defendUnits=e.defendUnits.filter(u=>u.hull>0);
+    return sync(e);
+  }
+  function losses(start,remaining) {
+    return 'Corvettes '+Math.max(0,(start.corvette||0)-remaining.corvette)+
+      ', frigates '+Math.max(0,(start.frigate||0)-remaining.frigate)+
+      ', cruisers '+Math.max(0,(start.cruiser||0)-remaining.cruiser);
+  }
+  return Object.freeze({STATS,composition,createUnits,summary,ensure,start,reinforce,advance,sync,losses});
+})();
+
+</script><script>
+/* Starfall Dominion v6.7 — colony construction, fleet capacity and troop logistics.
+   Pure balance rules: shared by rendering and game actions, no save-key changes. */
+'use strict';
+const StarfallEconomy = (() => {
+  const BUILDING_FIELDS=Object.freeze({
+    mine:'mines',reactor:'reactors',farm:'farms',shipyard:'shipyards',
+    extractor:'extractors',foundry:'foundry',laboratory:'laboratory',
+    tradeHub:'tradeHub',outpost:'outpost',fortress:'fortress',
+    refinery:'refinery',barracks:'barracks',factory:'factory'
+  });
+  const SHIP_BATCH=Object.freeze({fleet:2,frigate:1,cruiser:1});
+  const integer=n=>Number.isFinite(Number(n))?Math.max(0,Math.floor(Number(n))):0;
+  function buildingLevel(type,system,jobs=[],systemId=-1) {
+    const field=BUILDING_FIELDS[type];if(!field)return 0;
+    return integer(system?.[field]) + (jobs||[]).filter(j=>j&&j.system===systemId&&j.type===type).length;
+  }
+  function buildingCost(type,base,system,jobs=[],systemId=-1) {
+    if(!BUILDING_FIELDS[type]||!base)return base;
+    const level=buildingLevel(type,system,jobs,systemId);
+    const rate=Math.pow(1.55,Math.min(30,level));
+    return Object.fromEntries(Object.entries(base).map(([key,n])=>[key,Math.ceil(n*rate)]));
+  }
+  function shipCapacity(system,techs=[]) {return Math.floor((10+25*integer(system?.shipyards))*(techs.includes('carrierlogistics')?1.2:1));}
+  function queuedShips(jobs,systemId) {
+    return (jobs||[]).reduce((count,j)=>count+(j&&j.system===systemId?(SHIP_BATCH[j.type]||0):0),0);
+  }
+  function shipSlotsLeft(system,jobs,systemId,techs=[]) {
+    return Math.max(0,shipCapacity(system,techs)-integer(system?.ships)-queuedShips(jobs,systemId));
+  }
+  function canBuildShips(type,system,jobs,systemId,techs=[]) {
+    return !!SHIP_BATCH[type]&&shipSlotsLeft(system,jobs,systemId,techs)>=SHIP_BATCH[type];
+  }
+  function cargoCapacity(fleet,techs=[]) {
+    const total=integer(fleet?.ships);
+    const cruisers=Math.min(total,integer(fleet?.cruisers));
+    const frigates=Math.min(total-cruisers,integer(fleet?.frigates));
+    return Math.floor(((total-cruisers-frigates)*5+frigates*15+cruisers*35)*(techs.includes('carrierlogistics')?1.25:1));
+  }
+  // Space costs: infantry = 1 slot; marines = 2; armored vehicles = 5.
+  // Prioritize scarce armored support, then marines, then infantry.
+  function loadCargo(stock,fleet,techs=[]) {
+    const total=cargoCapacity(fleet,techs);
+    let remaining=total;
+    const armor=Math.min(integer(stock?.armor),Math.floor(remaining/5));remaining-=armor*5;
+    const marines=Math.min(integer(stock?.marines),Math.floor(remaining/2));remaining-=marines*2;
+    const troops=Math.min(integer(stock?.troops),remaining);remaining-=troops;
+    return {troops,marines,armor,slots:total,used:total-remaining};
+  }
+  return Object.freeze({BUILDING_FIELDS,buildingLevel,buildingCost,shipCapacity,queuedShips,shipSlotsLeft,canBuildShips,cargoCapacity,loadCargo});
+})();
+
+</script><script>
+/* Starfall Dominion expansion systems — economy, rival AI and research.
+   Deterministic simulation rules, compatible with existing saves and fleet combat. */
+'use strict';
+const StarfallExpansion=(()=>{
+ const PERSONALITIES=Object.freeze({
+  expansionist:{label:'Expansionist',growth:1.15,aggression:1.35,fortify:0.65},
+  militarist:{label:'Militarist',growth:1.25,aggression:1.8,fortify:0.9},
+  industrialist:{label:'Industrialist',growth:1.55,aggression:0.75,fortify:1.25},
+  sentinel:{label:'Sentinel',growth:0.95,aggression:0.65,fortify:1.8}
+ });
+ const TECHS=[
+  {id:'prospecting',name:'Deep Core Prospecting',branch:'Economy',requires:['industry'],cost:125,description:'+25% mine output and strategic deposit yield'},
+  {id:'fusion',name:'Fusion Grid',branch:'Economy',requires:['industry'],cost:145,description:'+35% reactor energy output'},
+  {id:'commerce',name:'Interstellar Commerce',branch:'Economy',requires:['logistics'],cost:150,description:'+30% colony credits and trade income'},
+  {id:'academies',name:'Research Academies',branch:'Science',requires:['prospecting'],cost:170,description:'+35% ongoing research production'},
+  {id:'advancedweapons',name:'Railgun Arrays',branch:'Military',requires:['weapons'],cost:175,description:'+25% fleet weapon damage'},
+  {id:'reinforcedhulls',name:'Reinforced Hulls',branch:'Military',requires:['defense'],cost:155,description:'+20% ship durability in battles'},
+  {id:'carrierlogistics',name:'Fleet Logistics',branch:'Military',requires:['navigation'],cost:160,description:'+20% shipyard capacity and +25% cargo space'},
+  {id:'commandnet',name:'Command Network',branch:'Military',requires:['advancedweapons','carrierlogistics'],cost:260,description:'+20% fleet firepower and faster fleet travel'},
+  {id:'terraforming',name:'Planetary Engineering',branch:'Economy',requires:['fusion','commerce'],cost:245,description:'+20% food production and improved population support'}
+ ];
+ const int=n=>Number.isFinite(Number(n))?Math.max(0,Math.floor(Number(n))):0;
+ function ensure(game){
+  if(!Array.isArray(game.techs))game.techs=[];
+  if(!game.aiStrategy||!PERSONALITIES[game.aiStrategy.personality]){
+   const options=Object.keys(PERSONALITIES);
+   const seed=Math.floor(Math.random()*options.length);
+   game.aiStrategy={personality:options[seed%options.length],relations:-35,policy:'hostile',lastRaidAt:-999};
+  }
+  const ai=game.aiStrategy;
+  ai.relations=Math.max(-100,Math.min(100,Number.isFinite(ai.relations)?ai.relations:-35));
+  if(!['hostile','neutral','truce'].includes(ai.policy))ai.policy='hostile';
+  if(!Number.isFinite(ai.lastRaidAt))ai.lastRaidAt=-999;if(ai.policy==='truce'&&game.elapsedSeconds>=(game.ceasefireEndsAt||0))ai.policy=ai.relations>=0?'neutral':'hostile';
+  for(const system of game.systems||[]){
+   if(!system.specialization)system.specialization='balanced';
+   if(!Number.isFinite(system.prosperity))system.prosperity=50;
+   system.prosperity=Math.max(0,Math.min(100,system.prosperity));
+  }
+  return ai;
+ }
+ function canResearch(id,owned){
+  const tech=TECHS.find(t=>t.id===id);
+  return !!tech&&tech.requires.every(r=>owned.includes(r));
+ }
+ function environmentMultiplier(system,key){
+  const env=system.environment;
+  if(key==='minerals')return ['Volcanic','Barren','Arid'].includes(env)?1.2:1;
+  if(key==='energy')return env==='Volcanic'||env==='Gas-rich'?1.2:1;
+  if(key==='food')return env==='Temperate'||env==='Jungle'||env==='Oceanic'?1.25:env==='Barren'?0.8:1;
+  if(key==='research')return env==='Frozen'||env==='Tundra'?1.1:1;
+  return 1;
+ }
+ function economyBonus(system,key,techs=[]){
+  let factor=environmentMultiplier(system,key);
+  if(key==='minerals'&&techs.includes('prospecting'))factor*=1.25;
+  if(key==='energy'&&techs.includes('fusion'))factor*=1.35;
+  if(key==='food'&&techs.includes('terraforming'))factor*=1.2;
+  if(key==='credits'&&techs.includes('commerce'))factor*=1.3;
+  if(key==='research'&&techs.includes('academies'))factor*=1.35;
+  if(key==='credits')factor*=0.8+Math.max(0,Math.min(100,system.prosperity??50))/250;
+  return factor;
+ }
+ function updateProsperity(game,dt){
+  for(const s of game.systems){
+   if(s.owner!=='player')continue;
+   const sustainable=(s.farms||0)>0&&(s.reactors||0)>0;
+   const trade=(s.tradeHub||0)*0.015+(s.outpost||0)*0.004;
+   const direction=sustainable?0.035:-0.045;
+   s.prosperity=Math.min(100,Math.max(0,(s.prosperity??50)+(direction+trade)*dt));
+  }
+ }
+ function aiDevelop(game,adjacent){
+  const state=ensure(game),p=PERSONALITIES[state.personality];
+  const systems=game.systems;
+  const aiSystems=systems.map((s,i)=>s.owner==='ai'?{s,i}:null).filter(Boolean);
+  for(const {s,i} of aiSystems){
+   if((s.shipyards||0)<1)s.shipyards=1;
+   const shipCap=10+25*(s.shipyards||0);
+   const strength=game.difficulty==='hard'?1.5:game.difficulty==='easy'?0.75:1;
+   s.ships=Math.min(shipCap,(s.ships||0)+Math.max(1,Math.floor(2*strength*p.growth)));
+   if((s.mines||0)<2&&game.elapsedSeconds%130<10)s.mines++;
+   if((s.reactors||0)<1&&game.elapsedSeconds%200<10)s.reactors++;
+   if((s.shipyards||0)<3&&s.ships>=shipCap-5)s.shipyards++;
+   if((s.fortress||0)<3&&game.elapsedSeconds%180<10&&p.fortify>=1.1)s.fortress++;
+   if(s.ships>=8&&!(s.frigates||0)&&game.elapsedSeconds>140)s.frigates=1;
+   if(s.ships>=17&&!(s.cruisers||0)&&game.elapsedSeconds>340)s.cruisers=1;
+   s.frigates=Math.min(s.ships,s.frigates||0);s.cruisers=Math.min(s.ships-s.frigates,s.cruisers||0);
+  }
+ }
+ function aiTarget(game,adjacent){
+  const ai=ensure(game),p=PERSONALITIES[ai.personality];
+  if(game.elapsedSeconds<(game.ceasefireEndsAt||0)||ai.policy==='truce')return null;
+  const difficulty=game.difficulty==='hard'?0.8:game.difficulty==='easy'?1.5:1;
+  const entries=[];
+  for(let i=0;i<game.systems.length;i++){
+   const source=game.systems[i];if(source.owner!=='ai'||source.ships<5)continue;
+   for(const j of adjacent(i)){
+    const target=game.systems[j];if(target.owner==='ai')continue;
+    const attack=source.ships*0.6;
+    const defense=(target.ships||0)+2*(target.fortress||0)+(target.troops||0)*0.05;
+    const isEnemy=target.owner==='player';
+    if(isEnemy&&ai.policy==='neutral'&&ai.relations>=20)continue;
+    if(isEnemy&&game.elapsedSeconds-(game.aiExpansionStartedAt||0)<140*difficulty)continue;
+    if(isEnemy&&attack<defense*(1.05/p.aggression)*difficulty)continue;
+    const score=(isEnemy?6*p.aggression:13)+Math.max(0,attack-defense)*0.7+(p.fortify>1.4?-4:0);
+    entries.push({from:i,to:j,score});
+   }
+  }
+  entries.sort((a,b)=>b.score-a.score||a.from-b.from||a.to-b.to);
+  return entries[0]||null;
+ }
+ function diplomacy(game,action){
+  const ai=ensure(game);
+  if(action==='improve'){
+   if(game.resources.credits<80||game.resources.crystals<2)return {ok:false,message:'Improving relations costs 80 credits and 2 crystals.'};
+   game.resources.credits-=80;game.resources.crystals-=2;ai.relations=Math.min(100,ai.relations+25);
+   if(ai.relations>=0)ai.policy='neutral';
+   return {ok:true,message:'Diplomatic envoys improved relations to '+ai.relations+'.'};
+  }
+  if(action==='provoke'){
+   ai.relations=Math.max(-100,ai.relations-25);ai.policy='hostile';
+   return {ok:true,message:'Relations deteriorated to '+ai.relations+'.'};
+  }
+  if(action==='truce'){
+   if(ai.relations<0)return {ok:false,message:'Rival relations must reach 0 before a treaty can be signed.'};
+   if(game.resources.credits<100)return {ok:false,message:'A treaty requires 100 credits.'};
+   game.resources.credits-=100;ai.policy='truce';game.ceasefireEndsAt=Math.max(game.ceasefireEndsAt||0,game.elapsedSeconds+240);
+   return {ok:true,message:'A 240-second ceasefire treaty is now in effect.'};
+  }
+  return {ok:false,message:'Unknown diplomacy action.'};
+ }
+ return Object.freeze({PERSONALITIES,TECHS,ensure,canResearch,economyBonus,updateProsperity,aiDevelop,aiTarget,diplomacy});
+})();
+
+</script>
 <script>
 'use strict';
 const KEY='starfall-dominion-rts-v42';const KEY_RTS41='starfall-dominion-rts-v41';const KEY_V40='starfall-dominion-v40';const KEY_V30='starfall-dominion-v30';const KEY_V22='starfall-dominion-v22';const KEY_V21='starfall-dominion-v21';const KEY_V20='starfall-dominion-v20';const KEY_V12='starfall-dominion-v12';const KEY_V11='starfall-dominion-v11';const KEY_V10='starfall-dominion-v10';const KEY_V09='starfall-dominion-v09';const KEY_V8='starfall-dominion-v08';const KEY_V7='starfall-dominion-v07';const KEY_V6='starfall-dominion-v06';const KEY_V5='starfall-dominion-v05';const KEY_V4='starfall-dominion-v04';const KEY_V3='starfall-dominion-v03';const PREV_KEY='starfall-dominion-v02';const OLD_KEY='starfall-dominion-v01';const TECHS=[{id:'industry',name:'Industrial Automation',description:'+50% mineral output from mines',cost:65},{id:'navigation',name:'Hyperlane Navigation',description:'Unlock extended friendly-route travel',cost:75},{id:'weapons',name:'Plasma Weapons',description:'+60% fleet weapon damage',cost:90},{id:'defense',name:'Planetary Shields',description:'Improved ship shields, armor and planetary batteries',cost:80},{id:'logistics',name:'Efficient Logistics',description:'+3 credits per colony per production cycle',cost:70}];
