@@ -106,6 +106,17 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 @keyframes surfaceTraffic{0%{transform:translateX(-90px)}100%{transform:translateX(1060px)}}
 @keyframes skyTransit{0%{transform:translateX(-150px)}100%{transform:translateX(1150px)}}
 @media(prefers-reduced-motion:reduce){#colonyScene .civilian-vehicle,#colonyScene .sky-transport,#colonyScene .construction-crane,#colonyScene .city-window{animation:none!important}}
+
+.planet-vista.is-3d{background:#060c1d}
+.planet-3d-host{position:absolute;inset:0;z-index:2}
+.planet-3d-host canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.planet-3d-host canvas:active{cursor:grabbing}
+.planet-vista.is-3d #colonyScene,.planet-vista.is-3d .planet-disc{display:none}
+.planet-vista.is-3d .planet-vista-copy{pointer-events:none}
+.planet-vista{transition:opacity .28s ease,transform .28s ease}
+#planetScreen:not(.hidden) .planet-vista{animation:surfaceArrival .65s ease-out both}
+@keyframes surfaceArrival{from{opacity:.1;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){#planetScreen:not(.hidden) .planet-vista{animation:none}}
 </style></head>
 <body>
 <section id="titleScreen" aria-label="Starfall Dominion title screen">
@@ -121,8 +132,8 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 </section>
 <section id="planetScreen" class="hidden" aria-label="Planetary construction screen" role="dialog" aria-modal="true">
  <div class="planet-wrap">
-  <div class="planet-top"><div><div class="title-kicker">COLONY COMMAND</div><h2 id="planetTitle">Planetary Construction</h2></div><div class="actions"><button id="planetBack">← Return to Galaxy</button><button id="planetTitleBtn">Main Menu</button></div></div>
-  <div class="planet-vista" id="planetVista"><div class="planet-disc" aria-hidden="true"></div><svg id="colonyScene" viewBox="0 0 1000 350" preserveAspectRatio="xMidYMax slice" role="group" aria-label="Colony skyline with constructed buildings"></svg><div class="surface-tools"><button id="surfaceZoomOut" aria-label="Zoom out">−</button><button id="surfaceZoomReset" aria-label="Reset zoom">Reset</button><button id="surfaceZoomIn" aria-label="Zoom in">+</button></div><div class="colony-legend" id="colonyLegend">No developed districts yet</div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
+  <div class="planet-top"><div><div class="title-kicker">COLONY COMMAND</div><h2 id="planetTitle">Planetary Construction</h2></div><div class="actions"><button id="planetViewToggle" aria-pressed="false">3D Planet View</button><button id="planetBack">← Return to Galaxy</button><button id="planetTitleBtn">Main Menu</button></div></div>
+  <div class="planet-vista" id="planetVista"><div class="planet-3d-host hidden" id="planet3DHost" aria-label="3D planetary colony"></div><div class="planet-disc" aria-hidden="true"></div><svg id="colonyScene" viewBox="0 0 1000 350" preserveAspectRatio="xMidYMax slice" role="group" aria-label="Colony skyline with constructed buildings"></svg><div class="surface-tools"><button id="surfaceZoomOut" aria-label="Zoom out">−</button><button id="surfaceZoomReset" aria-label="Reset zoom">Reset</button><button id="surfaceZoomIn" aria-label="Zoom in">+</button></div><div class="colony-legend" id="colonyLegend">No developed districts yet</div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
   <div class="planet-statbar" id="planetStats"></div><section class="panel surface-inspector" id="surfaceInspector" aria-live="polite"><h2 id="surfaceInspectorName">Select a district on the planet</h2><p id="surfaceInspectorInfo" class="muted">Tap a building or an empty plot to inspect it and order construction.</p><div id="surfaceInspectorActions" class="actions"></div></section>
   <div class="planet-layout">
    <div class="stack">
@@ -169,11 +180,12 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 <p id="notice" role="status"></p>
 </main>
 <footer>Experimental shared-galaxy RTS. An external Node.js galaxy server is required for persistent multiplayer; the public GitHub Pages client alone cannot run it.</footer>
+<script src="./planet3d.js" defer></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 let galaxy=null,selected=null,api='',token='',connected=false,reconnectTimer=null,streamController=null,stopped=false,connecting=false;
-let planetSystem=null,screen='title',surfaceSelection=null,surfaceZoom=1,surfaceOffset=0,surfacePointer=null;
+let planetSystem=null,screen='title',surfaceSelection=null,surfaceZoom=1,surfaceOffset=0,surfacePointer=null,planetView='3d',planet3dTicket=0;
 const RESOURCE_NAMES={credits:'Credits',minerals:'Minerals',alloys:'Alloys',energy:'Energy',food:'Food',titanium:'Titanium',crystals:'Crystals',gas:'Gas'};
 const badge=(text,cls='')=>{const span=document.createElement('span');span.textContent=text;span.className=cls;return span;};
 function storageKey(u){return 'starfall-mp-token:'+u;}
@@ -282,10 +294,45 @@ function costOf(type,s){return type==='upgrade'?Object.fromEntries(Object.entrie
 function price(cost){return Object.entries(cost).map(([k,v])=>Math.ceil(v)+' '+(RESOURCE_NAMES[k]||k)).join(' · ');}
 function openPlanet(id){
  const s=galaxy?.systems[id];if(!s||!own(s)){message('You can only manage your own colonies.',true);return;}
- planetSystem=id;surfaceSelection=null;surfaceZoom=1;surfaceOffset=0;screen='planet';$('planetScreen').classList.remove('hidden');renderPlanet();$('planetBack').focus();
+ planetSystem=id;surfaceSelection=null;surfaceZoom=1;surfaceOffset=0;screen='planet';$('planetScreen').classList.remove('hidden');renderPlanet();switchPlanetView(planetView);$('planetBack').focus();
 }
-function closePlanet(){surfaceSelection=null;planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
+function closePlanet(){planet3dTicket++;window.StarfallPlanet3D?.unmount();$('planet3DHost').classList.add('hidden');$('planetVista').classList.remove('is-3d');surfaceSelection=null;planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
 function showTitle(){if(screen==='planet')closePlanet();screen='title';$('titleScreen').classList.remove('hidden');}
+async function switchPlanetView(view){
+ planetView=view;
+ const ticket=++planet3dTicket,host=$('planet3DHost'),vista=$('planetVista'),toggle=$('planetViewToggle');
+ if(view==='2d'){
+  window.StarfallPlanet3D?.unmount();
+  host.classList.add('hidden');vista.classList.remove('is-3d');
+  toggle.textContent='Switch to 3D';toggle.setAttribute('aria-pressed','false');
+  return;
+ }
+ toggle.textContent='Loading 3D…';toggle.disabled=true;
+ try{
+  if(!window.StarfallPlanet3D)throw new Error('3D planet script unavailable');
+  host.classList.remove('hidden');
+  const ready=await window.StarfallPlanet3D.mount(host,type=>{
+   if(screen!=='planet')return;
+   surfaceSelection=type;
+   renderSurfaceInspector(galaxy.systems[planetSystem]);
+   const panel=$('surfaceInspector');panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  if(ticket!==planet3dTicket||screen!=='planet')return;
+  if(!ready)throw new Error('3D graphics unsupported or unavailable');
+  vista.classList.add('is-3d');window.StarfallPlanet3D.update(planet3dState(galaxy.systems[planetSystem]));
+  toggle.textContent='Switch to 2D';toggle.setAttribute('aria-pressed','true');
+ }catch(error){
+  if(ticket!==planet3dTicket)return;
+  planetView='2d';window.StarfallPlanet3D?.unmount();host.classList.add('hidden');vista.classList.remove('is-3d');
+  toggle.textContent='Try 3D';toggle.setAttribute('aria-pressed','false');
+  console.warn('Switching to the accessible 2D colony view',error);
+ }finally{if(ticket===planet3dTicket)toggle.disabled=false;}
+}
+function planet3dState(s){
+ return {id:s.id,deposit:s.deposit,level:s.level,buildings:s.buildings,
+  jobs:galaxy.jobs.filter(j=>j.system===s.id).map(j=>j.type)};
+}
+$('planetViewToggle').addEventListener('click',()=>switchPlanetView(planetView==='3d'?'2d':'3d'));
 function colonyBiome(s){
  const deposits={
   gas:{name:'Stormworld',sky:'#19264c',horizon:'#4a6491',ground:'#26394f',accent:'#a1c5ff'},
@@ -423,15 +470,16 @@ $('colonyScene').addEventListener('pointermove',e=>{
 $('colonyScene').addEventListener('pointerup',()=>{if(surfacePointer){const moved=surfacePointer.moved;surfacePointer=null;if(moved){$('colonyScene').dataset.justDragged='1';setTimeout(()=>delete $('colonyScene').dataset.justDragged,100);}}});
 $('colonyScene').addEventListener('click',e=>{if($('colonyScene').dataset.justDragged==='1')e.stopImmediatePropagation();},true);
 $('colonyScene').addEventListener('pointercancel',()=>{surfacePointer=null;});
-$('surfaceZoomIn').addEventListener('click',()=>changeSurfaceZoom(.3));
-$('surfaceZoomOut').addEventListener('click',()=>changeSurfaceZoom(-.3));
-$('surfaceZoomReset').addEventListener('click',()=>{surfaceZoom=1;surfaceOffset=0;applySurfaceView();});
+$('surfaceZoomIn').addEventListener('click',()=>planetView==='3d'&&window.StarfallPlanet3D?.ready?window.StarfallPlanet3D.zoom(.45):changeSurfaceZoom(.3));
+$('surfaceZoomOut').addEventListener('click',()=>planetView==='3d'&&window.StarfallPlanet3D?.ready?window.StarfallPlanet3D.zoom(-.45):changeSurfaceZoom(-.3));
+$('surfaceZoomReset').addEventListener('click',()=>{if(planetView==='3d'&&window.StarfallPlanet3D?.ready)window.StarfallPlanet3D.reset();else{surfaceZoom=1;surfaceOffset=0;applySurfaceView();}});
 function renderPlanet(){
  if(screen!=='planet'||!galaxy)return;
  const s=galaxy.systems[planetSystem];if(!s||!own(s)){closePlanet();message('Colony no longer controlled by your empire.',true);return;}
  $('planetTitle').textContent=s.name+' — Colony Command';$('planetVistaName').textContent=s.name;
  $('planetVistaDescription').textContent='Level '+s.level+' · '+colonyBiome(s).name+' · '+s.ships+' stationed ships';
  renderColonyScene(s);
+ if(planetView==='3d'&&window.StarfallPlanet3D?.ready)window.StarfallPlanet3D.update(planet3dState(s));
  const stats=$('planetStats');stats.replaceChildren();
  for(const [name,value] of [['Colony level',s.level],['Active jobs',galaxy.jobs.filter(j=>j.system===s.id).length+'/4'],['Ships',s.ships],['Deposit',s.deposit]])stats.append(badge(name+': '+value));
  const slots=$('planetSlots');slots.replaceChildren();
