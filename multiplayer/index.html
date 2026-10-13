@@ -147,7 +147,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
   </div>
  </div>
 </section>
-<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span><div class="actions"><button id="mpProfile">👤 Profile</button><button id="mpLeaderboard">🏆 Leaderboard</button><button id="mpGlobalLeaderboard">🌐 Global</button><button id="mpRecovery">🔑 Recovery Code</button></div></header>
+<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><label class="muted" style="font-size:12px"><input type="checkbox" id="mpShowAllResources"> All resources</label><span id="connection" class="status">Server disconnected</span><div class="actions"><button id="mpProfile">👤 Profile</button><button id="mpLeaderboard">🏆 Leaderboard</button><button id="mpGlobalLeaderboard">🌐 Global</button><button id="mpRecovery">🔑 Recovery Code</button></div></header>
 <section id="mpAccountOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="Multiplayer profile and leaderboard"><div class="panel" style="width:min(95vw,580px);max-height:85vh;overflow:auto"><div class="actions" style="justify-content:space-between"><h2 id="mpAccountTitle">Commander</h2><button id="mpAccountClose">← Back</button></div><div id="mpAccountBody"></div></div></section><main class="shell">
 <section id="setup" class="panel">
 <h2>Join the persistent galaxy</h2>
@@ -187,6 +187,8 @@ const $=id=>document.getElementById(id);
 let galaxy=null,selected=null,api='',token='',connected=false,reconnectTimer=null,streamController=null,stopped=false,connecting=false;
 let planetSystem=null,screen='title',surfaceSelection=null,surfaceZoom=1,surfaceOffset=0,surfacePointer=null,planetView='3d',planet3dTicket=0;
 const RESOURCE_NAMES={credits:'Credits',minerals:'Minerals',alloys:'Alloys',energy:'Energy',food:'Food',titanium:'Titanium',crystals:'Crystals',gas:'Gas'};
+const MP_BASIC_RESOURCES=new Set(['credits','minerals','alloys','energy','food']);
+function mpVisibleResource(key){if(MP_BASIC_RESOURCES.has(key)||$('mpShowAllResources').checked)return true;if(!galaxy||!galaxy.you)return false;const owned=galaxy.systems.filter(s=>s.owner===galaxy.you.id);return owned.some(s=>s.deposit===key&&((s.buildings&&s.buildings.extractor)||s.scanLevel>=1))||owned.some(s=>s.buildings&&s.buildings.refinery&&key==='gas')||(galaxy.you.techs||[]).some(t=>String(t).toLowerCase().includes(key));}
 const badge=(text,cls='')=>{const span=document.createElement('span');span.textContent=text;span.className=cls;return span;};
 function storageKey(u){return 'starfall-mp-token:'+u;}
 function resolveApi(){const raw=$('endpoint').value.trim().replace(/\/$/,'');if(!raw){if(location.hostname.endsWith('github.io'))throw Error('Enter the HTTPS address of your separately hosted galaxy server.');return location.origin;}
@@ -560,7 +562,7 @@ function renderDiplomacy(){
 }
 function render(){
  if(!galaxy)return;$('connection').textContent=(connected?'● LIVE':'◌ RECONNECTING')+' · '+Math.floor(galaxy.time)+'s';
- $('resources').replaceChildren(...Object.entries(galaxy.you.resources).map(([k,v])=>badge((RESOURCE_NAMES[k]||k)+': '+Math.floor(v))));
+ $('resources').replaceChildren(...Object.entries(galaxy.you.resources).filter(([k])=>mpVisibleResource(k)).map(([k,v])=>badge((RESOURCE_NAMES[k]||k)+': '+Math.floor(v))));
  $('universe').textContent='SERVER TIME +'+Math.floor(galaxy.time)+'s';
  const summary=$('empireSummary');summary.replaceChildren();
  labelLine(summary,'Commander',galaxy.you.name);labelLine(summary,'Colonies',galaxy.empires.find(e=>e.id===galaxy.you.id)?.colonies||0);
@@ -620,6 +622,7 @@ $('mpRecovery').addEventListener('click',()=>{const code=sessionStorage.getItem(
 $('mpGlobalLeaderboard').addEventListener('click',()=>showAccount('global'));
 $('recoverEmpire').addEventListener('click',()=>$('recoverySetup').classList.toggle('hidden'));
 $('submitRecovery').addEventListener('click',async()=>{try{api=resolveApi();const data=await request('/api/recover',{recoveryCode:$('recoveryCodeInput').value},false);token=data.token;localStorage.setItem(storageKey(api),token);localStorage.setItem('starfall-mp-server',api);$('recoveryCodeInput').value='';start(data.galaxy);sessionStorage.setItem('starfall-recovery-once',data.recoveryCode);showRecoveryCode(data.recoveryCode);}catch(e){message(e.message,true);}});
+$('mpShowAllResources').addEventListener('change',()=>{if(galaxy)render();});
 $('mpProfile').addEventListener('click',()=>showAccount('profile'));
 $('mpLeaderboard').addEventListener('click',()=>showAccount('leaderboard'));
 $('mpAccountClose').addEventListener('click',()=>$('mpAccountOverlay').classList.add('hidden'));
