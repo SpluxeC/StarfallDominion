@@ -27,8 +27,69 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 .hidden{display:none!important}
 @media(max-width:960px){.grid{grid-template-columns:1fr}.stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}#map{height:60vh;min-height:350px}}
 @media(max-width:560px){header{padding:12px}.shell{padding:8px}.panel{padding:12px}#map{height:50vh;min-height:295px}.stack{grid-template-columns:1fr}button{min-height:42px}}
+
+/* Title scene and dedicated planetary construction interface */
+#titleScreen{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow:auto;padding:20px;background:radial-gradient(ellipse at 50% 70%,#183966 0%,#091329 48%,#030711 100%)}
+#titleScreen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.6;background-image:radial-gradient(#bde8ff 1px,transparent 1px),radial-gradient(#8c9cfc 1px,transparent 1px);background-size:87px 89px,131px 143px;background-position:11px 15px,54px 80px}
+.title-content{position:relative;width:min(100%,760px);text-align:center;padding:clamp(24px,5vw,60px);border:1px solid #5088bd80;border-radius:22px;background:linear-gradient(160deg,#142a4bdc,#070f25ee);box-shadow:0 25px 100px #000b}
+.title-orb{width:clamp(110px,23vw,185px);aspect-ratio:1;border-radius:50%;margin:0 auto 24px;background:radial-gradient(circle at 28% 25%,#b8ffff 0%,#3992c2 14%,#24519a 40%,#101e55 70%,#030b21 100%);box-shadow:inset -23px -25px 40px #010819,0 0 60px #1c8ac888;position:relative}
+.title-orb:after{content:"";position:absolute;inset:-18%;border:2px solid #9ad5e75c;border-radius:50%;transform:rotate(-26deg) scaleY(.38)}
+.title-content h1{font-size:clamp(2rem,7vw,4.2rem);letter-spacing:.16em;line-height:1.08;text-shadow:0 0 25px #69bbff8c}
+.title-kicker{letter-spacing:.32em;color:#7bd7ff;font-size:.77rem;font-weight:800;margin:15px 0}
+.title-content p{max-width:550px;margin:18px auto;color:#b5cbe4}
+.title-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:28px 0 0}
+.title-actions button{min-width:190px;padding:13px 20px}
+.title-footer{margin-top:25px;font-size:.77rem;color:#879fc3}
+#planetScreen{position:fixed;inset:0;z-index:40;background:#050b18f5;overflow-y:auto;padding:16px;backdrop-filter:blur(8px)}
+.planet-wrap{max-width:1150px;margin:0 auto}.planet-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.planet-top h2{font-size:clamp(1.3rem,3vw,2rem);margin:0}.planet-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px}
+.planet-vista{position:relative;min-height:235px;border-radius:14px;border:1px solid #4476a2;overflow:hidden;background:radial-gradient(ellipse at 70% 15%,#32649e 0%,#152d58 36%,#070e26 78%)}
+.planet-disc{position:absolute;width:225px;height:225px;left:12%;top:8%;border-radius:50%;background:radial-gradient(circle at 32% 25%,#a3e5e2,#3a99b6 26%,#285c92 56%,#0a1a46 80%);box-shadow:inset -28px -25px 38px #030b2a,0 0 65px #37c5d04a}
+.planet-disc:after{content:"";position:absolute;inset:20% 4% 26% 20%;border-radius:60% 35% 45% 30%;background:#8cdbb445;transform:rotate(-22deg)}
+.planet-vista-copy{position:absolute;right:6%;top:30%;text-align:right;max-width:50%;text-shadow:0 2px 8px #000}
+.planet-vista-copy strong{font-size:1.5rem}.planet-vista-copy span{display:block;color:#c6dcf0;font-size:.85rem}
+.planet-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.planet-slot{border:1px solid #42638b;border-radius:12px;padding:13px;min-height:150px;background:linear-gradient(150deg,#1c3658,#101d35);display:flex;flex-direction:column;align-items:flex-start;gap:7px;text-align:left;width:100%}
+.planet-slot:hover:not(:disabled){border-color:#86d8ff}.planet-slot .slot-icon{font-size:1.65rem}.planet-slot .slot-title{font-size:.88rem;font-weight:750}.planet-slot .slot-stat{font-size:.75rem;color:#abc6dd}.planet-slot .slot-level{font-size:.76rem;color:#82f3c8}.planet-slot.empty{border-style:dashed;background:#0d1b31}
+.planet-slot.queued{border-color:#e5c07e;background:#322b33}.planet-slot.locked{opacity:.63}
+.planet-build-list{display:flex;flex-direction:column;gap:9px}.planet-build-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px;border:1px solid #3a5376;border-radius:9px;background:#14233e}
+.planet-build-row .name{font-size:.84rem;font-weight:700}.planet-build-row small{display:block;margin-top:3px}.planet-build-row button{flex-shrink:0}
+.progress-track{height:8px;background:#101d31;border:1px solid #3e6380;border-radius:99px;overflow:hidden;margin:6px 0}.progress-fill{height:100%;background:linear-gradient(90deg,#3b83c4,#8cf3dd);transition:width .5s}
+#planetJobs .job{padding:10px 0;border-bottom:1px solid #ffffff1c;font-size:.83rem}
+.planet-statbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.planet-statbar span{padding:7px 10px;background:#132a48;border:1px solid #3c648a;border-radius:7px;font-size:.8rem}
+@media(max-width:850px){.planet-layout{grid-template-columns:1fr}.planet-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:470px){.planet-slots{grid-template-columns:1fr 1fr}.planet-slot{min-height:137px;padding:10px}.planet-disc{left:2%;width:170px;height:170px}.planet-vista-copy{right:5%}}
+
 </style></head>
 <body>
+<section id="titleScreen" aria-label="Starfall Dominion title screen">
+ <div class="title-content">
+  <div class="title-orb" aria-hidden="true"></div>
+  <div class="title-kicker">A PERSISTENT GALAXY AWAITS</div>
+  <h1>STARFALL<br>DOMINION</h1>
+  <p>Command a rising civilization. Build your colonies, chart the hyperlanes, forge alliances, and conquer the stars in a living real-time galaxy.</p>
+  <div class="title-actions"><button id="titlePlay" class="primary">Enter the Galaxy</button><button id="titleContinue">Continue Empire</button><button id="titleHelp">How to Play</button></div>
+  <p id="titleHelpText" class="muted hidden">Join a server to create your empire. Select an owned system on the star map and open Planetary Construction to develop buildings. Resources and fleets advance continuously while the server runs.</p>
+  <div class="title-footer">MULTIPLAYER RTS ALPHA · UP TO FOUR COMMANDERS · SERVER REQUIRED</div>
+ </div>
+</section>
+<section id="planetScreen" class="hidden" aria-label="Planetary construction screen" role="dialog" aria-modal="true">
+ <div class="planet-wrap">
+  <div class="planet-top"><div><div class="title-kicker">COLONY COMMAND</div><h2 id="planetTitle">Planetary Construction</h2></div><div class="actions"><button id="planetBack">← Return to Galaxy</button><button id="planetTitleBtn">Main Menu</button></div></div>
+  <div class="planet-vista"><div class="planet-disc" aria-hidden="true"></div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
+  <div class="planet-statbar" id="planetStats"></div>
+  <div class="planet-layout">
+   <div class="stack">
+    <section class="panel"><h2>Colony Building Districts</h2><p class="muted">Select a district to construct or expand it. Levels represent completed structures; upgrades take real server time.</p><div id="planetSlots" class="planet-slots"></div></section>
+    <section class="panel"><h2>Active Construction</h2><div id="planetJobs"></div></section>
+   </div>
+   <aside class="stack">
+    <section class="panel"><h2>Build Catalog</h2><div id="planetCatalog" class="planet-build-list"></div></section>
+    <section class="panel"><h2>Colony Administration</h2><div id="planetAdministration"></div></section>
+   </aside>
+  </div>
+ </div>
+</section>
 <header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span></header>
 <main class="shell">
 <section id="setup" class="panel">
@@ -66,6 +127,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 'use strict';
 const $=id=>document.getElementById(id);
 let galaxy=null,selected=null,api='',token='',connected=false,reconnectTimer=null,streamController=null,stopped=false,connecting=false;
+let planetSystem=null,screen='title';
 const RESOURCE_NAMES={credits:'Credits',minerals:'Minerals',alloys:'Alloys',energy:'Energy',food:'Food',titanium:'Titanium',crystals:'Crystals',gas:'Gas'};
 const badge=(text,cls='')=>{const span=document.createElement('span');span.textContent=text;span.className=cls;return span;};
 function storageKey(u){return 'starfall-mp-token:'+u;}
@@ -79,7 +141,7 @@ async function request(url,body,authorized=true){
  const response=await fetch(api+url,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});
  const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Server returned '+response.status);return data;
 }
-function showSetup(){stopped=true;if(streamController)streamController.abort();connected=false;$('setup').classList.remove('hidden');$('game').classList.add('hidden');$('connection').textContent='Server disconnected';}
+function showSetup(){screen='login';$('titleScreen').classList.add('hidden');$('planetScreen').classList.add('hidden');stopped=true;if(streamController)streamController.abort();connected=false;$('setup').classList.remove('hidden');$('game').classList.add('hidden');$('connection').textContent='Server disconnected';}
 async function join(){
  try{api=resolveApi();const name=$('commander').value.trim();if(name.length<2)throw Error('Enter a commander name');
  const data=await request('/api/join',{name,invite:$('invite').value},false);
@@ -92,6 +154,7 @@ async function reconnect(){
  }catch(error){message(error.message,true);}
 }
 function start(data){
+ screen='galaxy';$('titleScreen').classList.add('hidden');$('planetScreen').classList.add('hidden');
  galaxy=data;selected=selected===null?data.systems.find(x=>x.owner===data.you.id)?.id??0:selected;
  $('setup').classList.add('hidden');$('game').classList.remove('hidden');stopped=false;render();connectStream();
 }
@@ -131,6 +194,7 @@ function renderSelected(){
   else{const p=document.createElement('p');p.className='muted';p.textContent='Send a fleet from a friendly system to contest this system.';orders.append(p);}return;
  }
  for(const [k,v] of Object.entries(s.buildings))if(v>0)labelLine(box,({tradeHub:'Trade Hub',foundry:'Alloy Foundry',laboratory:'Research Lab',fortress:'Orbital Fortress',refinery:'Gas Refinery'}[k]||k[0].toUpperCase()+k.slice(1)),v);
+ orders.append(button('🏗 Open Planetary Construction',()=>openPlanet(s.id),false,true));
  const heading=document.createElement('h3');heading.textContent='Construction orders';orders.append(heading);
  const buttons=div('actions');orders.append(buttons);
  const buildingInfo={mine:['⛏ Mine','+8 minerals'],reactor:['⚡ Reactor','+7 energy'],farm:['🌾 Hydroponic Farm','+6 food'],shipyard:['🛠 Shipyard','+4 alloys and shipbuilding'],extractor:['💎 Extractor','+3 local deposit'],foundry:['🏭 Alloy Foundry','+7 alloys, -3 energy'],laboratory:['🔬 Research Lab','+9 science, -2 energy'],tradeHub:['🏦 Trade Hub','+10 credits'],fortress:['🛡 Orbital Fortress','+6 defensive strength'],refinery:['🧪 Gas Refinery','+5 gas on gas worlds'],frigate:['🚀 Frigate','Build 3 ships'],cruiser:['🛸 Cruiser','Build 5 ships'],upgrade:['🏙 Colony Upgrade','Unlock advanced buildings']};
@@ -147,6 +211,90 @@ function renderSelected(){
  form.append(ships,target);orders.append(form);
  orders.append(button('Dispatch fleet',()=>command({type:'fleet',from:s.id,to:Number(target.value),ships:Number(ships.value)}),s.ships<1||!target.options.length,true));
 }
+
+const DISTRICTS=[
+ {type:'mine',icon:'⛏',name:'Mining Complex',effect:'+8 minerals / 20s'},
+ {type:'reactor',icon:'⚡',name:'Fusion Reactor',effect:'+7 energy / 20s'},
+ {type:'farm',icon:'🌿',name:'Hydroponic Farms',effect:'+6 food / 20s'},
+ {type:'shipyard',icon:'🛠',name:'Orbital Shipyard',effect:'Ships + alloys'},
+ {type:'extractor',icon:'💎',name:'Resource Extractor',effect:'+3 rare resource / 20s'},
+ {type:'foundry',icon:'🏭',name:'Alloy Foundry',effect:'+7 alloys / 20s, uses energy'},
+ {type:'laboratory',icon:'🔬',name:'Research Laboratory',effect:'+9 science / 20s, uses energy'},
+ {type:'tradeHub',icon:'🏦',name:'Trade Hub',effect:'+10 credits / 20s'},
+ {type:'fortress',icon:'🛡',name:'Orbital Fortress',effect:'+6 defense per level'},
+ {type:'refinery',icon:'🧪',name:'Gas Refinery',effect:'+5 gas / 20s'}
+];
+const BUILD_DURATIONS={mine:12,reactor:12,farm:10,shipyard:24,extractor:15,foundry:20,laboratory:22,tradeHub:20,fortress:26,refinery:23,frigate:14,cruiser:25,upgrade:28};
+function buildingRestriction(s,type){
+ if(['laboratory','fortress','refinery'].includes(type)&&s.level<2)return 'Requires colony level 2';
+ if(type==='refinery'&&s.deposit!=='gas')return 'Requires a gas deposit';
+ if(type==='extractor'&&s.deposit==='minerals')return 'Use mines on mineral worlds';
+ if(galaxy.jobs.filter(j=>j.system===s.id).length>=4)return 'Construction queue full';
+ return '';
+}
+function costOf(type,s){return type==='upgrade'?Object.fromEntries(Object.entries(galaxy.costs.upgrade).map(([k,v])=>[k,v*s.level])):galaxy.costs[type];}
+function price(cost){return Object.entries(cost).map(([k,v])=>Math.ceil(v)+' '+(RESOURCE_NAMES[k]||k)).join(' · ');}
+function openPlanet(id){
+ const s=galaxy?.systems[id];if(!s||!own(s)){message('You can only manage your own colonies.',true);return;}
+ planetSystem=id;screen='planet';$('planetScreen').classList.remove('hidden');renderPlanet();$('planetBack').focus();
+}
+function closePlanet(){planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
+function showTitle(){if(screen==='planet')closePlanet();screen='title';$('titleScreen').classList.remove('hidden');}
+function renderPlanet(){
+ if(screen!=='planet'||!galaxy)return;
+ const s=galaxy.systems[planetSystem];if(!s||!own(s)){closePlanet();message('Colony no longer controlled by your empire.',true);return;}
+ $('planetTitle').textContent=s.name+' — Colony Command';$('planetVistaName').textContent=s.name;
+ $('planetVistaDescription').textContent='Level '+s.level+' · '+s.deposit+' deposit · '+s.ships+' stationed ships';
+ const stats=$('planetStats');stats.replaceChildren();
+ for(const [name,value] of [['Colony level',s.level],['Active jobs',galaxy.jobs.filter(j=>j.system===s.id).length+'/4'],['Ships',s.ships],['Deposit',s.deposit]])stats.append(badge(name+': '+value));
+ const slots=$('planetSlots');slots.replaceChildren();
+ for(const district of DISTRICTS){
+  const count=s.buildings?.[district.type]||0,queue=galaxy.jobs.filter(j=>j.system===s.id&&j.type===district.type),restriction=buildingRestriction(s,district.type);
+  const tile=button('',()=>constructPlanet(district.type),!!restriction||!affordable(costOf(district.type,s)));
+  tile.className='planet-slot '+(count?'':'empty ')+(queue.length?'queued ':'')+(restriction?'locked':'');
+  const symbol=document.createElement('span');symbol.className='slot-icon';symbol.textContent=district.icon;
+  const title=document.createElement('span');title.className='slot-title';title.textContent=district.name;
+  const level=document.createElement('span');level.className='slot-level';level.textContent=count?'Built ×'+count:'Empty district';
+  const effect=document.createElement('span');effect.className='slot-stat';effect.textContent=district.effect;
+  const status=document.createElement('span');status.className='slot-stat';status.textContent=restriction|| (queue.length?'Building ×'+queue.length: 'Click to construct');
+  tile.title=restriction||price(costOf(district.type,s));tile.append(symbol,title,level,effect,status);slots.append(tile);
+ }
+ const catalog=$('planetCatalog');catalog.replaceChildren();
+ for(const district of DISTRICTS){
+  const cost=costOf(district.type,s),restriction=buildingRestriction(s,district.type),item=div('planet-build-row'),info=document.createElement('div'),name=div('name'),details=document.createElement('small');
+  name.textContent=district.icon+' '+district.name;details.textContent=restriction||price(cost);info.append(name,details);
+  item.append(info,button('Build',()=>constructPlanet(district.type),!!restriction||!affordable(cost)));catalog.append(item);
+ }
+ const jobs=$('planetJobs');jobs.replaceChildren();
+ const active=galaxy.jobs.filter(j=>j.system===s.id);
+ if(!active.length){const p=document.createElement('p');p.className='muted';p.textContent='No construction underway. Choose a district to start building.';jobs.append(p);}
+ for(const job of active){
+  const item=div('job'),duration=BUILD_DURATIONS[job.type]||30,percent=Math.max(0,Math.min(100,(1-job.remaining/duration)*100));
+  const name=document.createElement('strong');name.textContent=(DISTRICTS.find(x=>x.type===job.type)?.name||job.type)+' · '+Math.ceil(job.remaining)+'s remaining';
+  const bar=div('progress-track'),fill=div('progress-fill');fill.style.width=percent+'%';bar.append(fill);bar.setAttribute('role','progressbar');bar.setAttribute('aria-label',job.type+' construction progress');bar.setAttribute('aria-valuenow',String(Math.round(percent)));bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');item.append(name,bar);jobs.append(item);
+ }
+ const admin=$('planetAdministration');admin.replaceChildren();
+ labelLine(admin,'Colony level',s.level+' / 4');
+ const upgradeCost=costOf('upgrade',s);
+ const note=document.createElement('p');note.className='muted';note.textContent='Upgrading a colony unlocks advanced structures and expands its economy. Cost: '+price(upgradeCost);admin.append(note);
+ const queuedUpgrade=active.some(j=>j.type==='upgrade');
+ admin.append(button(queuedUpgrade?'Upgrade in progress':s.level>=4?'Max colony level':'Upgrade Colony',()=>constructPlanet('upgrade'),s.level>=4||queuedUpgrade||active.length>=4||!affordable(upgradeCost),true));
+ const fleetHeading=document.createElement('h3');fleetHeading.textContent='Orbital ship production';admin.append(fleetHeading);
+ for(const type of ['frigate','cruiser'])admin.append(button('Build '+type+' · '+price(costOf(type,s)),()=>constructPlanet(type),!s.buildings.shipyard||active.length>=4||!affordable(costOf(type,s))));
+}
+async function constructPlanet(type){
+ if(!galaxy||screen!=='planet')return;
+ const id=planetSystem;
+ try{await request('/api/command',{type:'build',system:id,building:type});message('Construction queued on '+galaxy.systems[id].name+'.');const next=await request('/api/state');acceptSnapshot(next);renderPlanet();}
+ catch(error){message(error.message,true);}
+}
+$('titlePlay').addEventListener('click',()=>{if(galaxy){screen='galaxy';$('titleScreen').classList.add('hidden');}else showSetup();});
+$('titleContinue').addEventListener('click',()=>{if(galaxy){screen='galaxy';$('titleScreen').classList.add('hidden');}else{showSetup();reconnect();}});
+$('titleHelp').addEventListener('click',()=>$('titleHelpText').classList.toggle('hidden'));
+$('planetBack').addEventListener('click',closePlanet);
+$('planetTitleBtn').addEventListener('click',showTitle);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&screen==='planet')closePlanet();});
+
 function renderResearch(){
  const root=$('research');root.replaceChildren();labelLine(root,'Available science',Math.floor(galaxy.you.science));
  for(const [id,t] of Object.entries(galaxy.research)){
@@ -189,7 +337,7 @@ function render(){
  const owned=galaxy.systems.some(s=>s.owner===galaxy.you.id);
  if(!owned)acc.append(button('Establish exile recovery outpost',()=>command({type:'recover'}),galaxy.you.recoveryReadyAt>galaxy.time,true));
  acc.append(button('Change server / reconnect',showSetup));
- const editingOrders=$('orders').contains(document.activeElement),editingDiplomacy=$('diplomacy').contains(document.activeElement);renderMap();if(!editingOrders)renderSelected();renderResearch();if(!editingDiplomacy)renderDiplomacy();
+ const editingOrders=$('orders').contains(document.activeElement),editingDiplomacy=$('diplomacy').contains(document.activeElement);renderMap();if(!editingOrders)renderSelected();renderResearch();if(!editingDiplomacy)renderDiplomacy();if(screen==='planet')renderPlanet();
 }
 function acceptSnapshot(data){if(!data||!data.you||!Array.isArray(data.systems))return;if(!galaxy||data.version>=galaxy.version){galaxy=data;connected=true;render();}}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
