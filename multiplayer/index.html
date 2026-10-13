@@ -78,6 +78,22 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 @keyframes beaconFlash{50%{opacity:.25}}
 @keyframes scanPulse{50%{opacity:.35;transform:scale(1.08)}}
 @media(prefers-reduced-motion:reduce){.planet-disc,#colonyScene *{animation:none!important;transition:none!important}}
+
+/* Interactive planet surface */
+.planet-vista{min-height:420px;touch-action:pan-y}
+#colonyScene{pointer-events:auto;cursor:grab;touch-action:pan-y}
+#colonyScene.dragging{cursor:grabbing}
+#colonyScene .district-hit{cursor:pointer;pointer-events:all;outline:none}
+#colonyScene .district-hit:focus-visible .district-outline,#colonyScene .district-hit.selected .district-outline{stroke:#b7f8ff;stroke-width:4;opacity:1}
+#colonyScene .district-outline{stroke:#77a5c9;stroke-width:2;opacity:.55;fill:#16304b44;stroke-dasharray:6 5}
+#colonyScene .district-hit:hover .district-outline{stroke:#b7f8ff;opacity:1}
+#colonyScene .empty-pad{fill:#173651aa;stroke:#78c5df;stroke-width:2;stroke-dasharray:7 5}
+#colonyScene .district-label{font-size:13px;font-weight:700;fill:#e3f6ff;paint-order:stroke;stroke:#06152b;stroke-width:3px;pointer-events:none}
+.surface-tools{position:absolute;left:12px;top:12px;z-index:5;display:flex;gap:5px}
+.surface-tools button{min-width:39px;min-height:35px;background:#0b2042e8}
+.surface-inspector{margin:12px 0}
+.surface-inspector h2{margin-bottom:5px}
+@media(max-width:650px){.planet-vista{min-height:330px}.surface-tools{top:auto;bottom:12px}.colony-legend{bottom:12px}}
 </style></head>
 <body>
 <section id="titleScreen" aria-label="Starfall Dominion title screen">
@@ -94,8 +110,8 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 <section id="planetScreen" class="hidden" aria-label="Planetary construction screen" role="dialog" aria-modal="true">
  <div class="planet-wrap">
   <div class="planet-top"><div><div class="title-kicker">COLONY COMMAND</div><h2 id="planetTitle">Planetary Construction</h2></div><div class="actions"><button id="planetBack">← Return to Galaxy</button><button id="planetTitleBtn">Main Menu</button></div></div>
-  <div class="planet-vista"><div class="planet-disc" aria-hidden="true"></div><svg id="colonyScene" viewBox="0 0 1000 350" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Colony skyline with constructed buildings"></svg><div class="colony-legend" id="colonyLegend">No developed districts yet</div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
-  <div class="planet-statbar" id="planetStats"></div>
+  <div class="planet-vista" id="planetVista"><div class="planet-disc" aria-hidden="true"></div><svg id="colonyScene" viewBox="0 0 1000 350" preserveAspectRatio="xMidYMax slice" role="group" aria-label="Colony skyline with constructed buildings"></svg><div class="surface-tools"><button id="surfaceZoomOut" aria-label="Zoom out">−</button><button id="surfaceZoomReset" aria-label="Reset zoom">Reset</button><button id="surfaceZoomIn" aria-label="Zoom in">+</button></div><div class="colony-legend" id="colonyLegend">No developed districts yet</div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
+  <div class="planet-statbar" id="planetStats"></div><section class="panel surface-inspector" id="surfaceInspector" aria-live="polite"><h2 id="surfaceInspectorName">Select a district on the planet</h2><p id="surfaceInspectorInfo" class="muted">Tap a building or an empty plot to inspect it and order construction.</p><div id="surfaceInspectorActions" class="actions"></div></section>
   <div class="planet-layout">
    <div class="stack">
     <section class="panel"><h2>Colony Building Districts</h2><p class="muted">Select a district to construct or expand it. Levels represent completed structures; upgrades take real server time.</p><div id="planetSlots" class="planet-slots"></div></section>
@@ -145,7 +161,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 'use strict';
 const $=id=>document.getElementById(id);
 let galaxy=null,selected=null,api='',token='',connected=false,reconnectTimer=null,streamController=null,stopped=false,connecting=false;
-let planetSystem=null,screen='title';
+let planetSystem=null,screen='title',surfaceSelection=null,surfaceZoom=1,surfaceOffset=0,surfacePointer=null;
 const RESOURCE_NAMES={credits:'Credits',minerals:'Minerals',alloys:'Alloys',energy:'Energy',food:'Food',titanium:'Titanium',crystals:'Crystals',gas:'Gas'};
 const badge=(text,cls='')=>{const span=document.createElement('span');span.textContent=text;span.className=cls;return span;};
 function storageKey(u){return 'starfall-mp-token:'+u;}
@@ -254,13 +270,15 @@ function costOf(type,s){return type==='upgrade'?Object.fromEntries(Object.entrie
 function price(cost){return Object.entries(cost).map(([k,v])=>Math.ceil(v)+' '+(RESOURCE_NAMES[k]||k)).join(' · ');}
 function openPlanet(id){
  const s=galaxy?.systems[id];if(!s||!own(s)){message('You can only manage your own colonies.',true);return;}
- planetSystem=id;screen='planet';$('planetScreen').classList.remove('hidden');renderPlanet();$('planetBack').focus();
+ planetSystem=id;surfaceSelection=null;surfaceZoom=1;surfaceOffset=0;screen='planet';$('planetScreen').classList.remove('hidden');renderPlanet();$('planetBack').focus();
 }
-function closePlanet(){planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
+function closePlanet(){surfaceSelection=null;planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
 function showTitle(){if(screen==='planet')closePlanet();screen='title';$('titleScreen').classList.remove('hidden');}
 function renderColonyScene(s){
  const svg=$('colonyScene');
  const owned=s.buildings||{},jobs=galaxy.jobs.filter(j=>j.system===s.id),types=DISTRICTS.filter(d=>(owned[d.type]||0)>0||jobs.some(j=>j.type===d.type));
+ const selected=surfaceSelection;
+ const plotPositions=DISTRICTS.map((d,i)=>({d,x:35+i*95,y:285+(i%3)*8,w:68}));
  const terrain=s.deposit==='gas'?'#28465e':s.deposit==='titanium'?'#454d6b':s.deposit==='crystals'?'#334f70':'#365c67';
  let art='<defs><linearGradient id="groundGlow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+terrain+'"/><stop offset="1" stop-color="#071020"/></linearGradient><linearGradient id="towerMetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#668cae"/><stop offset=".45" stop-color="#263c5c"/><stop offset="1" stop-color="#101b34"/></linearGradient></defs>';
  art+='<path d="M0 260 Q160 225 290 256 T600 249 T1000 260 V350 H0Z" fill="url(#groundGlow)"/>';
@@ -281,19 +299,65 @@ function renderColonyScene(s){
   const lights=Array.from({length:Math.min(level+1,5)},(_,i)=>'<rect class="city-light" x="'+(x+13+i*9)+'" y="'+(y-16)+'" width="5" height="5" fill="#8ef5f7"/>').join('');
   return '<g class="structure '+(underConstruction?'active-construction':'')+'">'+body+extra+lights+'<circle class="beacon" cx="'+(x+w/2)+'" cy="'+(Y-4)+'" r="3" fill="#ffcf78"/></g>';
  };
+ // Every district has a persistent surface plot, including unbuilt districts.
  const built=types.slice(0,10);
- built.forEach((d,i)=>{
-  const count=owned[d.type]||0,queued=jobs.some(j=>j.type===d.type),w=68,x=35+i*95,y=285+(i%3)*8;
-  art+=shape(d.type,x,y,w,58+(i%3)*13,count||1,queued&&count===0);
-  if(queued)art+='<path d="M'+(x-5)+' '+(y+4)+' V'+(y-112)+' H'+(x+w+5)+' V'+(y+4)+'" stroke="#fbd27a" stroke-width="2" stroke-dasharray="6 6" fill="none" opacity=".8"/>';
+ plotPositions.forEach(({d,x,y,w},i)=>{
+  const count=owned[d.type]||0,queued=jobs.some(j=>j.type===d.type),isSelected=selected===d.type;
+  const yTop=y-145;
+  art+='<g class="district-hit '+(isSelected?'selected':'')+'" data-district="'+d.type+'" role="button" tabindex="0" aria-label="'+d.name+', '+(count?'built level '+count:'empty plot')+'">';
+  art+='<rect class="district-outline" x="'+(x-8)+'" y="'+yTop+'" width="'+(w+16)+'" height="164" rx="8"/>';
+  if(count||queued)art+=shape(d.type,x,y,w,58+(i%3)*13,count||1,queued&&count===0);
+  else art+='<path class="empty-pad" d="M'+x+' '+y+' l15 -14 h'+(w-30)+' l15 14 l-15 10 h-'+(w-30)+'Z"/><path d="M'+(x+w/2)+' '+(y-39)+' v27 M'+(x+w/2-12)+' '+(y-25)+' h24" stroke="#b6ddec" stroke-width="4"/>';
+  if(queued)art+='<path class="active-construction" d="M'+(x-5)+' '+(y+4)+' V'+(y-112)+' H'+(x+w+5)+' V'+(y+4)+'" stroke="#fbd27a" stroke-width="2" stroke-dasharray="6 6" fill="none"/>';
+  art+='<text class="district-label" x="'+(x+w/2)+'" y="'+(y+27)+'" text-anchor="middle">'+(i+1)+'. '+(count?'Lv '+count:queued?'Building':'Empty')+'</text></g>';
  });
  if(!built.length)art+='<g opacity=".8"><path d="M420 285 L440 245 H515 L535 285Z" fill="#3c5975"/><path d="M450 245 V222 H505 V245" stroke="#83b8cf" stroke-width="5" fill="none"/><circle cx="478" cy="240" r="7" fill="#73e7ed"/></g>';
  art+='<path d="M0 311 Q270 295 490 315 T1000 304 V350 H0Z" fill="#081426" opacity=".78"/>';
  svg.innerHTML=art;
+ applySurfaceView();
  svg.setAttribute('aria-label',s.name+' colony skyline, '+types.length+' developed or active districts, colony level '+s.level);
  $('colonyLegend').textContent=types.length+' active districts · '+jobs.length+' construction orders';
+ renderSurfaceInspector(s);
 }
 
+function applySurfaceView(){
+ const svg=$('colonyScene');if(!svg)return;
+ const width=1000/surfaceZoom,left=Math.max(0,Math.min(1000-width,(1000-width)/2+surfaceOffset));
+ svg.setAttribute('viewBox',left+' 0 '+width+' 350');
+}
+function changeSurfaceZoom(delta){surfaceZoom=Math.max(1,Math.min(2.5,Math.round((surfaceZoom+delta)*10)/10));surfaceOffset=0;applySurfaceView();}
+function renderSurfaceInspector(s){
+ const info=$('surfaceInspectorInfo'),actions=$('surfaceInspectorActions'),heading=$('surfaceInspectorName');actions.replaceChildren();
+ const d=DISTRICTS.find(item=>item.type===surfaceSelection);
+ if(!d){heading.textContent='Explore your colony';info.textContent='Tap any of the ten numbered plots in the surface scene. Empty plots can be developed; existing structures can be expanded.';return;}
+ const count=s.buildings?.[d.type]||0,queue=galaxy.jobs.filter(j=>j.system===s.id&&j.type===d.type),restriction=buildingRestriction(s,d.type),cost=costOf(d.type,s);
+ heading.textContent=d.icon+' '+d.name;
+ info.textContent=(count?'Built level '+count+'. ':'Undeveloped district. ')+d.effect+'. '+(queue.length?'Construction underway. ':'')+(restriction||'Next level: '+price(cost));
+ actions.append(button('Construct '+(count?'another level':'building'),()=>constructPlanet(d.type),!!restriction||!affordable(cost)));
+ actions.append(button('Clear selection',()=>{surfaceSelection=null;renderColonyScene(s);}));
+}
+$('colonyScene').addEventListener('click',e=>{
+ if(surfacePointer?.moved)return;
+ const target=e.target.closest('[data-district]');if(!target||screen!=='planet')return;
+ surfaceSelection=target.dataset.district;renderColonyScene(galaxy.systems[planetSystem]);
+});
+$('colonyScene').addEventListener('keydown',e=>{
+ if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-district]')){
+  e.preventDefault();surfaceSelection=e.target.dataset.district;renderColonyScene(galaxy.systems[planetSystem]);
+  $('surfaceInspectorActions').querySelector('button')?.focus();
+ }
+});
+$('colonyScene').addEventListener('pointerdown',e=>{if(e.button!==0)return;surfacePointer={x:e.clientX,offset:surfaceOffset,moved:false};});
+$('colonyScene').addEventListener('pointermove',e=>{
+ if(!surfacePointer)return;const dx=e.clientX-surfacePointer.x;if(Math.abs(dx)>8)surfacePointer.moved=true;
+ if(surfacePointer.moved&&surfaceZoom>1){surfaceOffset=surfacePointer.offset-dx/$('colonyScene').getBoundingClientRect().width*(1000/surfaceZoom);applySurfaceView();}
+});
+$('colonyScene').addEventListener('pointerup',()=>{if(surfacePointer){const moved=surfacePointer.moved;surfacePointer=null;if(moved){$('colonyScene').dataset.justDragged='1';setTimeout(()=>delete $('colonyScene').dataset.justDragged,100);}}});
+$('colonyScene').addEventListener('click',e=>{if($('colonyScene').dataset.justDragged==='1')e.stopImmediatePropagation();},true);
+$('colonyScene').addEventListener('pointercancel',()=>{surfacePointer=null;});
+$('surfaceZoomIn').addEventListener('click',()=>changeSurfaceZoom(.3));
+$('surfaceZoomOut').addEventListener('click',()=>changeSurfaceZoom(-.3));
+$('surfaceZoomReset').addEventListener('click',()=>{surfaceZoom=1;surfaceOffset=0;applySurfaceView();});
 function renderPlanet(){
  if(screen!=='planet'||!galaxy)return;
  const s=galaxy.systems[planetSystem];if(!s||!own(s)){closePlanet();message('Colony no longer controlled by your empire.',true);return;}
