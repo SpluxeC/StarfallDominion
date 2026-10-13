@@ -183,6 +183,10 @@ assert.ok(run('anomalyBenefit(5,1)').includes('defense'),'Station choice preview
 assert.equal(run('resolveAnomaly(5,1)'),true,'Abandoned station systems can be restored');
 run('const oldAnomaly=initial();delete oldAnomaly.systems[1].anomalyChoice;normalizeGame(oldAnomaly);');
 assert.equal(run('oldAnomaly.systems[1].anomalyChoice'),null,'Older saves migrate anomaly choice');
+assert.equal(run('formatBuildCost({credits:35,minerals:40,alloys:12})'),'35 credits · 40 minerals · 12 alloys','Building costs show full resource names');
+assert.ok(html.includes('BUILD SITE'),'Planetary plots show build-site status');
+assert.ok(html.includes('Place '),'Planetary inspector offers structure placement');
+assert.ok(html.includes('BUILDING'),'Construction sites show live building status');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
