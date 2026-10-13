@@ -5,7 +5,7 @@
 const CDN='https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js';
 let THREE=null,renderer=null,scene=null,camera=null,globe=null,frame=0,host=null,select=null;
 let planetId=null,lastSignature='',targets=[],pickers=[],rotationX=.18,rotationY=-.7,targetX=.18,targetY=-.7,radius=9.8,targetRadius=9.8,pressed=null;
-let cleanup=[],active=false,loading=null,mountEpoch=0,quality='medium',lastFrameTime=0;
+let cleanup=[],active=false,loading=null,mountEpoch=0,quality='medium',lastFrameTime=0,animatedLights=[];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const palettes={
  gas:{ground:0x485c91,alt:0x647aa6,sky:0x90b7f7,emissive:0x8c6ed6},
@@ -21,7 +21,7 @@ function buildingColor(type){
 }
 function clearGlobe(){
  if(!globe)return;
- targets=[];
+ targets=[];animatedLights=[];
  globe.traverse(obj=>{
   if(obj.geometry)obj.geometry.dispose();
   if(obj.material){for(const mat of (Array.isArray(obj.material)?obj.material:[obj.material]))mat.dispose();}
@@ -55,7 +55,7 @@ function route(from,to,r=3.065){
 }
 function buildDistrict(group,type,level,queued){
  const accent=buildingColor(type),steel=lit(0x3c4858,{metalness:.82,roughness:.36}),dark=lit(0x182735,{metalness:.78}),armor=lit(0x70849a,{metalness:.75}),glow=lit(accent,{metalness:.38,emissive:accent,emissiveIntensity:.48}),glass=lit(0x6fc7dd,{metalness:.3,transparent:true,opacity:.72});
- const H=.20+Math.min(6,level)*.065;
+ animatedLights.push(glow);const H=.20+Math.min(6,level)*.065;
  const part=(geo,mat,x,y,z)=>{const m=mesh(geo,mat,group);m.position.set(x,y,z);return m;};
  const box=(w,h,d,x,y,z,mat=steel)=>part(new THREE.BoxGeometry(w,h,d),mat,x,y,z);
  const cyl=(r1,r2,h,x,y,z,mat=steel,n=10)=>part(new THREE.CylinderGeometry(r1,r2,h,n),mat,x,y,z);
@@ -149,6 +149,7 @@ function buildGlobe(state){
  mesh(new THREE.SphereGeometry(3.12,quality==='low'?24:48,quality==='low'?16:32),new THREE.MeshBasicMaterial({
   color:biome.sky,transparent:true,opacity:.09,side:THREE.BackSide,depthWrite:false
  }));
+ if(state.surveyed){const mineralColor=state.deposit==='crystals'?0xb58aff:state.deposit==='titanium'?0x9ab7df:state.deposit==='gas'?0x7de7c8:0xe1b079;for(let i=0;i<9;i++){const lat=.5*Math.sin(i*2.17+state.id),lon=i*2.399+state.id*.27;const cluster=surfaceGroup(lat,lon);const crystal=mesh(new THREE.ConeGeometry(.045+(i%3)*.02,.15+(i%4)*.05,5),lit(mineralColor,{emissive:mineralColor,emissiveIntensity:.16}),cluster);crystal.position.y=.09;crystal.rotation.z=(i%3-1)*.2;}}
  const positionCount=10,positions=[];
  for(let i=0;i<positionCount;i++){
   const lon=i*2*Math.PI/positionCount;
@@ -201,7 +202,7 @@ function animate(){
  radius+=(targetRadius-radius)*.11;
  if(globe)globe.rotation.set(rotationX,rotationY,0);
  camera.position.set(0,1.1,radius);camera.lookAt(0,0,0);
- if(globe)for(const ring of targets){if(ring.parent)ring.rotation.z+=.015;}
+ if(globe)for(const ring of targets){if(ring.parent)ring.rotation.z+=.015;}if(!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches){const pulse=.43+.11*Math.sin(performance.now()*.0016);for(const material of animatedLights)material.emissiveIntensity=pulse;}
  renderer.render(scene,camera);
 }
 async function mount(container,onSelect){
