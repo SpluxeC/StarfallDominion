@@ -206,7 +206,7 @@ function normalizeGame(state){
  if(!Number.isFinite(state.aiGrowthClock))state.aiGrowthClock=0;if(!Number.isFinite(state.aiOrderClock))state.aiOrderClock=0;if(!Number.isFinite(state.aiExpansionStartedAt))state.aiExpansionStartedAt=state.systems.filter(s=>s.owner==='player').length>1?state.elapsedSeconds:null;if(!Number.isFinite(state.aiLastExpansionAt))state.aiLastExpansionAt=null;
  if(!['easy','normal','hard'].includes(state.difficulty))state.difficulty='normal';
  if(!Array.isArray(state.jobs))state.jobs=[];state.jobs=state.jobs.filter(j=>j&&Number.isInteger(j.system)&&j.system>=0&&j.system<BASE.length&&Object.hasOwn(BUILD_SECONDS,j.type)&&Number.isFinite(j.remaining)&&j.remaining>0&&j.remaining<=BUILD_SECONDS[j.type]).slice(0,100);
- for(const f of state.fleets)if(!Number.isFinite(f.progress)||f.progress<0||f.progress>=1)f.progress=0;if(!Number.isInteger(f.troops)||f.troops<0)f.troops=0;
+ for(const f of state.fleets){if(!Number.isFinite(f.progress)||f.progress<0||f.progress>=1)f.progress=0;if(!Number.isInteger(f.troops)||f.troops<0)f.troops=0;if(!Number.isInteger(f.marines)||f.marines<0)f.marines=0;if(!Number.isInteger(f.armor)||f.armor<0)f.armor=0;for(const kind of ['frigates','cruisers'])if(!Number.isInteger(f[kind])||f[kind]<0)f[kind]=0;}
 }
 function note(s){game.logs.unshift('T+'+formatTime(game.elapsedSeconds)+': '+s);game.logs=game.logs.slice(0,32);}
 function has(c){return Object.entries(c).every(([k,v])=>game.resources[k]>=v);}
