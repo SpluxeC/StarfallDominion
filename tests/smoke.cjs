@@ -24,7 +24,12 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v22'));
+assert.ok(store.has('starfall-dominion-v40'));
+vm.runInContext('game.resources.credits=500;game.resources.minerals=500;trade("buy","titanium")',context,{timeout:3000});
+assert.equal(vm.runInContext('game.resources.titanium',context),21);
+vm.runInContext('selected=0;upgradeColony()',context,{timeout:3000});
+assert.equal(vm.runInContext('game.systems[0].level',context),2);
+
 assert.equal(vm.runInContext('game.resources.titanium',context),16);
 assert.equal(vm.runInContext('game.resources.crystals',context),12);
 assert.equal(vm.runInContext('game.resources.gas',context),8);
@@ -39,11 +44,15 @@ assert.ok(document.getElementById('import'));
 assert.ok(document.getElementById('importFile'));
 assert.ok(document.getElementById('empire').children.length===6);
 assert.ok(document.getElementById('forecast').children.length===9);
+assert.ok(document.getElementById('market').children.length>=4);
+assert.ok(document.getElementById('shared').children.length>=4);
+assert.equal(vm.runInContext('game.systems[0].level',context),1);
+
 assert.ok(document.getElementById('intel'));
 assert.ok(html.includes('Galaxy map legend'));
 assert.ok(html.includes('star-halo'));
 assert.ok(html.includes('prefers-reduced-motion'));
-assert.equal(vm.runInContext('productionForecast().credits',context),27);
+assert.equal(vm.runInContext('productionForecast().credits',context),31);
 vm.runInContext('game.difficulty="hard";aiTurn()',context,{timeout:3000});
 assert.equal(vm.runInContext('game.difficulty',context),'hard');
 assert.ok(document.getElementById('help'));
