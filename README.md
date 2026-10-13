@@ -1,8 +1,57 @@
-# Starfall Dominion — Real-Time RTS Prototype v4.2
+# Starfall Dominion — Persistent Multiplayer RTS Alpha
+
+Starfall Dominion is a **continuous-time space RTS**, not a turn-based game. The repository now contains **two playable development tracks**:
+
+| Track | Client | Server | Status |
+|---|---|---|---|
+| **Persistent multiplayer alpha** | [multiplayer/index.html](multiplayer/index.html) | [multiplayer/server.cjs](multiplayer/server.cjs) | New, server-authoritative four-player galaxy; needs hosting and end-to-end deployment verification |
+| **Offline/local RTS prototype v4.2** | [index.html](index.html) | Browser-local only | Single-player development sandbox, unchanged apart from its multiplayer link |
+
+**Expected game URLs after GitHub Pages is configured:**
+- [Multiplayer client](https://spluxec.github.io/StarfallDominion/multiplayer/) — requires a separately hosted HTTPS galaxy server
+- [Single-player RTS](https://spluxec.github.io/StarfallDominion/) — runs locally in the browser
+
+GitHub Pages hosts HTML but **cannot** run the authoritative Node.js galaxy server. A public multiplayer rollout also requires a running Node host with persistent storage. The above URLs have not been independently verified as deployed.
+
+## Start the multiplayer alpha locally
+
+Install Node.js 22 or newer, clone the repository, then:
+
+```bash
+npm start
+```
+
+Open `http://localhost:8788/` (or the configured port). Register a commander, then join with another browser profile or device to control a second empire. Both connect to **one server-owned galaxy**, which continues simulating while the server is running.
+
+Read [Multiplayer setup, hosting and limits](multiplayer/README.md) for Docker, environment variables, persistence, HTTPS and inviting friends. A [Render hosting blueprint](render.yaml) and [Docker Compose configuration](compose.yaml) are included. **Managed hosting with persistent storage may incur charges**; do not enable a paid host until you agree to its costs.
+
+## Multiplayer alpha features
+
+- One continuously advancing 20-system shared galaxy, with four independent human-controlled empires
+- Server-authoritative resources, science, research, timed construction, fleets and combat
+- Live visibility-filtered state streaming; private token-based player identity and reconnect
+- Trade proposals, non-aggression pacts, temporary intelligence visibility, pirate faction pressure
+- Exile recovery even after losing your colonies
+- Atomic file-backed saves and bounded catch-up after server restart
+- No End Turn mechanic; players can issue orders independently
+
+**Production caveats:** This is still an early alpha. It needs a publicly hosted server and actual end-to-end browser validation. It does not yet have production account recovery, scalable database persistence, complete anti-cheat measures, moderation or a production deployment. See [multiplayer/README.md](multiplayer/README.md).
+
+## Automated tests
+
+```bash
+npm test
+```
+
+Includes the original RTS smoke test, the older experimental snapshot-relay test, and authoritative multiplayer integration tests. GitHub Actions also runs the test suite on pushes.
+
+## Earlier prototype and design history
+
+### Original local RTS v4.2 documentation
 
 **Starfall Dominion is designed as a persistent, shared-galaxy space RTS.** Players should be able to manage colonies, dispatch fleets, gather intelligence, and interact with each other without waiting for turns.
 
-This repository currently contains an **experimental single-player browser RTS**, a **separate, unhosted shared-snapshot room server**, and automated gameplay tests. It is not yet the fully persistent multiplayer game.
+This section documents the earlier offline prototype. The newer multiplayer alpha described above introduces a server-owned continuously ticking galaxy, but still needs public hosting and verification.
 
 ## Play
 
@@ -76,4 +125,4 @@ The browser smoke test exercises ongoing production, pause, queued ship construc
 - **v4.0:** Experimental snapshot-sharing room service (not live multiplayer).
 - **v4.1–v4.2:** Corrected direction to a continuously advancing **RTS**, with time-based simulation, fleets, AI, ceasefires, and construction queues.
 
-Future work should be developed against the RTS simulation, **not** reintroduce End Turn mechanics. The main remaining milestone is a genuinely server-authoritative persistent galaxy that friends can occupy together.
+Future work should be developed against the RTS simulation, **not** reintroduce End Turn mechanics. The multiplayer alpha now implements the first server-authoritative galaxy; hosting, production hardening and full end-to-end verification remain.
