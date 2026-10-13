@@ -91,10 +91,20 @@ function order(s,id,cmd){const e=who(s,id);if(!cmd||typeof cmd!=='object'||typeo
  }else if(cmd.type==='recover'){
   if(s.systems.some(x=>x.owner===id))fail('You still control territory');
   if(s.time<e.recoveryReadyAt)fail('Recovery cooldown is still active');
-  const target=s.systems.find(x=>x.owner===null);if(!target)fail('No unclaimed system available for recovery');
-  target.owner=id;target.ships=2;target.level=1;target.buildings={mine:1,reactor:1,farm:1,shipyard:0,extractor:0};
+  const target=s.systems.find(x=>x.owner===null);
   e.resources.credits=Math.max(e.resources.credits,100);e.resources.minerals=Math.max(e.resources.minerals,80);e.resources.alloys=Math.max(e.resources.alloys,30);
-  e.recoveryReadyAt=s.time+600;log(s,e.name+' founded an exile recovery outpost on '+target.name);
+  if(target){
+   target.owner=id;target.ships=2;target.level=1;target.buildings={mine:1,reactor:1,farm:1,shipyard:0,extractor:0};
+   log(s,e.name+' founded an exile recovery outpost on '+target.name,null,target.id);
+  }else{
+   const candidates=s.systems.filter(x=>x.owner!==id&&!pact(s,id,x.owner)).sort((a,b)=>(a.owner==='pirates'?0:1)-(b.owner==='pirates'?0:1)||a.ships-b.ships);
+   const target=candidates[0];if(!target)fail('No available reentry route; break an active pact first');
+   const origin=adjacent(target.id)[0];if(origin===undefined)fail('No reachable recovery target');
+   const strength=10;
+   s.fleets.push({id:s.nextId++,owner:id,ships:strength,path:[origin,target.id],hop:0,remaining:15,hopTotal:15});
+   log(s,e.name+' launched an exile recovery flotilla toward '+target.name,null,target.id);
+  }
+  e.recoveryReadyAt=s.time+600;
  }else fail('Unsupported command');
  s.version++;return result;
 }
