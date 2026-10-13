@@ -24,13 +24,16 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v20'));
+assert.ok(store.has('starfall-dominion-v21'));
 assert.ok(document.getElementById('export'));
 assert.ok(document.getElementById('import'));
 assert.ok(document.getElementById('importFile'));
 assert.ok(document.getElementById('empire').children.length===6);
 assert.ok(document.getElementById('forecast').children.length===6);
 assert.ok(document.getElementById('intel'));
+assert.ok(html.includes('Galaxy map legend'));
+assert.ok(html.includes('star-halo'));
+assert.ok(html.includes('prefers-reduced-motion'));
 assert.equal(vm.runInContext('productionForecast().credits',context),30);
 vm.runInContext('game.difficulty="hard";aiTurn()',context,{timeout:3000});
 assert.equal(vm.runInContext('game.difficulty',context),'hard');
