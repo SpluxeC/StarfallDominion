@@ -2,6 +2,12 @@
 
 This folder implements a **live server-owned shared galaxy**. It is deliberately separate from the original standalone RTS prototype. Each player controls an independent empire, while a persistent Node process advances the galaxy whether or not anyone is connected.
 
+## One-click server hosting on Render
+
+Use [Deploy Starfall Dominion on Render](https://render.com/deploy?repo=https://github.com/SpluxeC/StarfallDominion) to create the always-on Node web service from the repository's `render.yaml`. Confirm **the paid compute plan and 1 GB persistent disk** before approving charges. Render generates a private `STARFALL_INVITE_CODE` for the server. After successful deployment, open `https://<your-service>.onrender.com/api/health` to confirm the server is responding, then enter your actual HTTPS origin into the game at `/multiplayer/` (or use the game's UI hosted by the Render server itself).
+
+Current expected base cost is approximately $7.25/month (0.5c-512mb compute $7/month plus 1 GB persistent disk $0.25/month), excluding potential additional usage. Pricing may change; the Render checkout is authoritative. The region is configured to Virginia for East Coast responsiveness.
+
 ## Run locally (Node 22+)
 
 From the repository root:
