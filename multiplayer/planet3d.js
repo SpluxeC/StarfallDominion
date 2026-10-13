@@ -17,7 +17,7 @@ function addListener(el,event,callback,options){
  el.addEventListener(event,callback,options);cleanup.push(()=>el.removeEventListener(event,callback,options));
 }
 function buildingColor(type){
- return ({mine:0xc5a677,reactor:0x55eaf5,farm:0x67dc9a,shipyard:0x92b6ff,extractor:0xc4f2ef,foundry:0xe6a875,laboratory:0xb49cf7,tradeHub:0xffd696,fortress:0x849bbd,refinery:0x8befc5})[type]||0xc6d6e6;
+ return ({mine:0xc5a677,reactor:0x55eaf5,farm:0x67dc9a,shipyard:0x92b6ff,extractor:0xc4f2ef,foundry:0xe6a875,laboratory:0xb49cf7,tradeHub:0xffd696,outpost:0xffc76a,fortress:0x849bbd,refinery:0x8befc5})[type]||0xc6d6e6;
 }
 function clearGlobe(){
  if(!globe)return;
@@ -150,14 +150,14 @@ function buildGlobe(state){
   color:biome.sky,transparent:true,opacity:.09,side:THREE.BackSide,depthWrite:false
  }));
  if(state.surveyed){const mineralColor=state.deposit==='crystals'?0xb58aff:state.deposit==='titanium'?0x9ab7df:state.deposit==='gas'?0x7de7c8:0xe1b079;for(let i=0;i<9;i++){const lat=.5*Math.sin(i*2.17+state.id),lon=i*2.399+state.id*.27;const cluster=surfaceGroup(lat,lon);const crystal=mesh(new THREE.ConeGeometry(.045+(i%3)*.02,.15+(i%4)*.05,5),lit(mineralColor,{emissive:mineralColor,emissiveIntensity:.16}),cluster);crystal.position.y=.09;crystal.rotation.z=(i%3-1)*.2;}}
- const positionCount=10,positions=[];
+ const positionCount=11,positions=[];
  for(let i=0;i<positionCount;i++){
   const lon=i*2*Math.PI/positionCount;
   const lat=.27*Math.sin(i*1.6);
   positions.push({lat,lon,vector:point(lat,lon)});
  }
  positions.forEach((p,i)=>route(p.vector,positions[(i+1)%positions.length].vector));
- const types=['mine','reactor','farm','shipyard','extractor','foundry','laboratory','tradeHub','fortress','refinery'];
+ const types=['outpost','mine','reactor','farm','shipyard','extractor','foundry','laboratory','tradeHub','fortress','refinery'];
  const queued=new Set(state.jobs||[]);
  types.forEach((type,i)=>{
   const pos=positions[i],group=surfaceGroup(pos.lat,pos.lon),level=Number(state.buildings?.[type]||0);
