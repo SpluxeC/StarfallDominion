@@ -236,4 +236,20 @@ assert.ok(html.includes('bottomResources'),'Bottom HUD contains resource strip')
 assert.ok(html.includes('data-command-tab="settings"'),'Settings has a navigation tab');
 assert.ok(html.includes('militaryTraining'),'Fleet tab contains a dedicated training panel');
 
+
+run('game=initial();selected=0;game.resources.credits=2000;game.resources.minerals=2000;game.resources.alloys=2000;game.resources.titanium=100;game.resources.gas=100;game.resources.nickel=100;game.resources.tungsten=100;');
+run('build("outpost")');
+assert.ok(!run('game.jobs.some(j=>j.type==="outpost")'),'Starter planet cannot construct an outpost');
+run('selected=1;game.systems[1].owner="player";build("outpost")');
+assert.ok(run('game.jobs.some(j=>j.system===1&&j.type==="outpost")'),'Expansion colony can build an outpost');
+run('selected=0;buildShip("frigate");buildShip("cruiser")');
+for(let i=0;i<9;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].frigates'),1,'Frigate is tracked as a separate hull');
+assert.equal(run('game.systems[0].cruisers'),1,'Cruiser is tracked as a separate hull');
+assert.equal(run('game.systems[0].ships'),5,'New warships add one ship each rather than strength units');
+assert.equal(run('fleetHullHP({ships:2,frigates:1,cruisers:1})'),74,'Warships have different hull durability');
+assert.equal(run('fleetFirepower({ships:2,frigates:1,cruisers:1})'),7.5,'Warships have different firepower');
+assert.equal(run('fleetSurvivors(40,0,1).cruisers'),1,'Damaged cruiser remains alive');
+assert.ok(html.includes('formatBuildCostArt'),'Resource art is displayed beside build costs');
+
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
