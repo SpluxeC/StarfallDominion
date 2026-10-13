@@ -90,6 +90,8 @@ test('HTTP server enforces invitations, bearer authorization, scoped empires, SS
  let tokenA,tokenB,streamReader;
  try{
   const health=await(await fetch(base+'/api/health')).json();assert.equal(health.simulation,'realtime');
+  const sameOrigin=await fetch(base+'/api/health',{headers:{Origin:base}});assert.equal(sameOrigin.status,200,'Same-origin browser requests are allowed');
+  const hostileOrigin=await fetch(base+'/api/health',{headers:{Origin:'https://untrusted.invalid'}});assert.equal(hostileOrigin.status,403,'Unapproved origins are rejected');
   const forbidden=await post('/api/join',{name:'Alpha',invite:'wrong'});assert.equal(forbidden.status,403);
   const created=await post('/api/join',{name:'Alpha',invite:'friends-only'});assert.equal(created.status,201);
   const joined=await created.json();tokenA=joined.token;
