@@ -73,3 +73,9 @@ In GitHub repository Settings → Pages, choose **Deploy from a branch**, **main
 
 ### Status
 The game remains a standalone single-player prototype. The v2.0 source is committed, but a successful live-browser test and GitHub Pages deployment are not verified by the source commit alone.
+
+## v2.1 Visual Overhaul
+- Refreshed command center styling, typography, responsive controls, and empire panels.
+- Galaxy nebula backdrop, denser starfield, glowing stars, clearer selection highlights, and refined hyperlanes.
+- Persistent ownership legend, keyboard focus indicators, and reduced-motion support.
+- Local save migration from v2.0. This changes presentation, not the multiplayer architecture.
