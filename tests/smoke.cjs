@@ -102,6 +102,21 @@ assert.equal(run('legacy.ceasefireEndsAt'),100,'Legacy ceasefires migrate into t
 assert.equal(run('legacy.systems[0].level'),1);
 assert.equal(run('legacy.jobs.length'),0);
 
+assert.ok(html.includes('id="soloTitle"')&&html.includes('id="soloPlanet"'),'Single-player title and planet screens exist');
+assert.ok(html.includes('src="multiplayer/planet3d.js"'),'Single-player shares multiplayer 3D viewer');
+assert.equal(run('SOLO_DISTRICTS.length'),10,'Ten interactive planetary districts exist');
+run('game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000;game.resources.energy=1000;game.resources.crystals=1000;game.resources.gas=1000;selected=0;');
+const beforeFoundry=run('game.systems[0].foundry');
+run('build("foundry")');
+assert.ok(run('game.jobs.some(j=>j.type==="foundry")'),'Foundry is queued in solo simulation');
+for(let i=0;i<7;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].foundry'),beforeFoundry+1,'Foundry construction completes');
+assert.ok(run('productionForecast().alloys')>0,'Foundry produces alloys');
+run('build("laboratory")');
+assert.ok(run('game.jobs.some(j=>j.type==="laboratory")'),'Advanced level-two district can be built');
+for(let i=0;i<8;i++)run('stepSimulation(3)');
+assert.ok(run('game.systems[0].laboratory')>=1,'Laboratory completes');
+assert.ok(run('productionForecast().research')>=13,'Laboratory produces science');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
