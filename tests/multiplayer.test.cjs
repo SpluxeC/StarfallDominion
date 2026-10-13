@@ -159,12 +159,30 @@ test('three dimensional planetary camera integrates with the construction view a
   assert.ok(html.includes(token),'missing browser integration '+token);
  for(const token of ['three.module.js','THREE.WebGLRenderer','THREE.Raycaster','function buildGlobe(state)','function buildDistrict(group,type,level,queued)','function surfaceGroup(lat,lon)','function route(from,to','function zoom(delta)','function unmount()','get ready()','pointermove','wheel','keydown','render','catch(err)'])
   assert.ok(js.includes(token),'missing 3D behavior '+token);
- assert.match(js,/const count=Math\.min\(140/);
+ assert.match(js,/const count=Math\.min\(quality==='low'\?50:140/);
  assert.match(js,/Math\.min\(8,level\)/);
  assert.doesNotThrow(()=>new Function(js));
  const inline=html.match(/<script>([\s\S]*?)<\/script>/);
  assert.ok(inline);
  assert.doesNotThrow(()=>new Function(inline[1]));
+});
+test('both deployment targets serve the actual 3D browser asset',async()=>{
+ const workflow=fs.readFileSync(path.join(__dirname,'../.github/workflows/pages.yml'),'utf8');
+ assert.match(workflow,/cp multiplayer\/planet3d\.js public\/multiplayer\/planet3d\.js/);
+ const app=createServer({file:null,invite:'test-invite'});
+ await new Promise(resolve=>app.server.listen(0,'127.0.0.1',resolve));
+ try{
+  const base='http://127.0.0.1:'+app.server.address().port;
+  const index=await fetch(base+'/multiplayer/');
+  assert.equal(index.status,200);
+  assert.match(await index.text(),/src="\.\/planet3d\.js"/);
+  const asset=await fetch(base+'/multiplayer/planet3d.js');
+  assert.equal(asset.status,200);
+  assert.match(asset.headers.get('content-type'),/javascript/);
+  assert.match(await asset.text(),/window\.StarfallPlanet3D=/);
+  const rootAsset=await fetch(base+'/planet3d.js');
+  assert.equal(rootAsset.status,200);
+ }finally{await new Promise(resolve=>app.server.close(resolve));}
 });
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
