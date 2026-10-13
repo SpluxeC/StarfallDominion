@@ -74,6 +74,28 @@ test('private events and distant territorial changes are obscured by fog',()=>{
  assert.ok(!view.events.some(ev=>ev.message.includes('dispatched')&&ev.message.includes('Kestrel')),'Enemy orders are not public intelligence');
  assert.equal(view.systems[5].visible,false);
 });
+test('advanced colony buildings produce bonuses and enforce planet prerequisites',()=>{
+ const s=engine.newGalaxy(),a=engine.addEmpire(s,ids[0],'Builder');
+ a.resources={credits:10000,minerals:10000,alloys:10000,energy:10000,food:10000,titanium:10000,crystals:10000,gas:10000};
+ assert.throws(()=>engine.order(s,a.id,{type:'build',system:0,building:'fortress'}),/level 2/);
+ engine.order(s,a.id,{type:'build',system:0,building:'foundry'});
+ engine.order(s,a.id,{type:'build',system:0,building:'tradeHub'});
+ engine.tick(s,30);
+ assert.equal(s.systems[0].buildings.foundry,1);
+ assert.equal(s.systems[0].buildings.tradeHub,1);
+ assert.ok(engine.income(s,a).alloys>=11);
+ assert.ok(engine.income(s,a).credits>=25);
+ engine.order(s,a.id,{type:'build',system:0,building:'upgrade'});
+ engine.tick(s,30);
+ assert.equal(s.systems[0].level,2);
+ engine.order(s,a.id,{type:'build',system:0,building:'fortress'});
+ engine.order(s,a.id,{type:'build',system:0,building:'laboratory'});
+ assert.throws(()=>engine.order(s,a.id,{type:'build',system:0,building:'refinery'}),/gas deposit/);
+ engine.tick(s,30);
+ assert.equal(s.systems[0].buildings.fortress,1);
+ assert.equal(s.systems[0].buildings.laboratory,1);
+ assert.ok(engine.income(s,a).science>=15);
+});
 test('client source has live updates, authenticated commands and no turn button',()=>{
  const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
  assert.match(html,/api\/events/);assert.match(html,/api\/command/);
