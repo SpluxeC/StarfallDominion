@@ -1,4 +1,4 @@
-# Starfall Dominion — Browser Prototype v0.3
+# Starfall Dominion — Browser Prototype v0.9
 
 A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
 
@@ -22,7 +22,7 @@ For a public static demo, publish the root `index.html` using GitHub Pages (Sett
 ## Next milestone
 Move simulation rules into independently tested modules, add research and ship types, then prototype a server-authoritative persistent multiplayer backend.
 
-## Prototype v0.3 additions
+## Prototype v0.9 additions
 - Five research technologies, science generation and practical technology bonuses.
 - Fleet dispatch percentages (25%, 50%, 100%).
 - Multi-hop fleet travel unlocked by Hyperlane Navigation.
@@ -38,3 +38,13 @@ Move simulation rules into independently tested modules, add research and ship t
 6. Reload the page and confirm progress persists.
 
 Live site, if GitHub Pages has been enabled: https://spluxec.github.io/StarfallDominion/
+
+## Updates v0.4–v0.9
+- **v0.4**: Frigate and cruiser squadrons at shipyards.
+- **v0.5**: Planetary environments and system information.
+- **v0.6**: Battle power reporting and combat counters.
+- **v0.7**: Temporary four-turn diplomatic ceasefires.
+- **v0.8**: Stronger rival fleet and shipyard growth; empire overview tooltip.
+- **v0.9**: Export save files, expanded mission objectives, and updated smoke tests.
+
+**Important:** This remains a single-player, turn-based strategy prototype, not the planned persistent multiplayer RTS. The six updates are code commits, not six separately deployed production releases. A successful automated test run and live GitHub Pages deployment should be checked before claiming browser verification.
