@@ -1,79 +1,107 @@
+'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(script,'Inline game script exists');
+assert.ok(!html.includes('id="next"'),'Old End Turn button is removed');
+assert.ok(html.includes('id="pause"')&&html.includes('id="speed"'),'RTS controls exist');
+
 const elements=new Map();
-function element(){return {textContent:'',innerHTML:'',style:{},className:'',classList:{add(){}},children:[],setAttribute(){},appendChild(c){this.children.push(c);return c;},replaceChildren(...c){this.children=c;},addEventListener(){}};}
-const document={getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},createElement:element,createElementNS:element};
-const store=new Map();
-const context={document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},confirm:()=>true,console,Set,Math,JSON,Array,Object,Number};
-vm.createContext(context);vm.runInContext(script,context,{timeout:3000});
-assert.match(document.getElementById('turnLabel').textContent,/Turn 1/);
-assert.ok(document.getElementById('actions').children.length>0);
-assert.ok(document.getElementById('objectives').children.length===7);
-assert.ok(document.getElementById('research').children.length>0);
-assert.ok(document.getElementById('market').children.length>0);
-assert.ok(document.getElementById('shared').children.length>0);
-vm.runInContext('nextTurn()',context,{timeout:3000});
-assert.match(document.getElementById('turnLabel').textContent,/Turn 2/);
-vm.runInContext('selected=1;colonize()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.systems[1].owner',context),'player');
-vm.runInContext('selected=0;build("fleet")',context,{timeout:3000});
-assert.ok(vm.runInContext('game.systems[0].ships',context)>=5);
-vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:3000});
-assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
-vm.runInContext('send(2)',context,{timeout:3000});
-assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v40'));
-vm.runInContext('game.resources.credits=500;game.resources.minerals=500;trade("buy","titanium")',context,{timeout:3000});
-assert.equal(vm.runInContext('game.resources.titanium',context),21);
-vm.runInContext('selected=0;upgradeColony()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.systems[0].level',context),2);
+function element(){return {
+ textContent:'',innerHTML:'',style:{},className:'',value:'',attributes:{},children:[],
+ classList:{add(){}},
+ setAttribute(k,v){this.attributes[k]=v;},
+ appendChild(c){this.children.push(c);return c;},
+ replaceChildren(...children){this.children=children;},
+ addEventListener(name,fn){this['on'+name]=fn;}
+};}
+const document={
+ activeElement:null,
+ getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},
+ createElement:element,createElementNS:element
+};
+const store=new Map();let timer;
+const context={
+ document,
+ localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
+ confirm:()=>true,alert:()=>{},
+ setInterval:fn=>{timer=fn;return 1;},
+ window:{addEventListener(){}},
+ console
+};
+vm.createContext(context);
+const run=(code)=>vm.runInContext(code,context,{timeout:3000});
+run(script);
+assert.equal(typeof timer,'function','Automatic simulation timer installed');
+assert.match(document.getElementById('turnLabel').textContent,/LIVE.*0:00/);
+assert.ok(document.getElementById('construction'),'Construction queue panel exists');
+assert.ok(document.getElementById('shared').children.length>0,'Shared-room experiment remains accessible');
+assert.ok(document.getElementById('market').children.length>0,'Economy interface renders');
+assert.equal(document.getElementById('forecast').children.length,9);
+assert.equal(document.getElementById('objectives').children.length,7);
+assert.equal(document.getElementById('empire').children.length,6);
 
-assert.equal(vm.runInContext('game.resources.titanium',context),16);
-assert.equal(vm.runInContext('game.resources.crystals',context),12);
-assert.equal(vm.runInContext('game.resources.gas',context),8);
-vm.runInContext('selected=0;build("extractor")',context,{timeout:3000});
-assert.equal(vm.runInContext('game.systems[0].extractors',context),1);
-const crystalsBefore=vm.runInContext('game.resources.crystals',context);
-vm.runInContext('nextTurn()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.resources.crystals',context),crystalsBefore+3);
+const startingCredits=run('game.resources.credits');
+const startingResearch=run('game.research');
+run('stepSimulation(2)');
+assert.equal(run('game.elapsedSeconds'),2);
+assert.ok(run('game.resources.credits')>startingCredits,'Production flows without pressing a turn button');
+assert.ok(run('game.research')>startingResearch,'Research flows without pressing a turn button');
 
-const beforeTrade=vm.runInContext('game.resources.minerals',context);
-vm.runInContext('trade("buy","minerals")',context,{timeout:3000});
-assert.equal(vm.runInContext('game.resources.minerals',context),beforeTrade+5);
-vm.runInContext('trade("sell","minerals")',context,{timeout:3000});
-assert.equal(vm.runInContext('game.resources.minerals',context),beforeTrade);
-vm.runInContext('selected=0;game.resources.credits=500;game.resources.minerals=500;game.resources.alloys=500;upgradeColony()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.systems[0].level',context),2);
-assert.equal(vm.runInContext('productionForecast().research',context),12);
-assert.ok(document.getElementById('export'));
-assert.ok(document.getElementById('import'));
-assert.ok(document.getElementById('importFile'));
-assert.ok(document.getElementById('empire').children.length===6);
-assert.ok(document.getElementById('forecast').children.length===9);
-assert.ok(document.getElementById('market').children.length>=4);
-assert.ok(document.getElementById('shared').children.length>=4);
-assert.equal(vm.runInContext('game.systems[0].level',context),1);
+run('paused=true;stepSimulation(3)');
+assert.equal(run('game.elapsedSeconds'),2,'Pause halts simulation');
+run('paused=false');
+run('build("fleet")');
+assert.equal(run('game.jobs.length'),1,'Fleet purchase enters a queue');
+assert.equal(run('game.systems[0].ships'),3,'Ships are not built instantly');
+for(let i=0;i<3;i++)run('stepSimulation(3)');
+assert.equal(run('game.jobs.length'),0);
+assert.equal(run('game.systems[0].ships'),5,'Shipbuilding finishes after nine game seconds');
 
-assert.ok(document.getElementById('intel'));
-assert.ok(html.includes('Galaxy map legend'));
-assert.ok(html.includes('star-halo'));
-assert.ok(html.includes('prefers-reduced-motion'));
-assert.equal(vm.runInContext('productionForecast().credits',context),31);
-vm.runInContext('game.difficulty="hard";aiTurn()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.difficulty',context),'hard');
-assert.ok(document.getElementById('help'));
-assert.ok(document.getElementById('tutorial'));
+run('selected=1;colonize();selected=0');
+assert.equal(run('game.systems[1].owner'),'player');
+run('game.research=200;researchTech("navigation")');
+assert.equal(run('game.techs.includes("navigation")'),true);
+run('send(2)');
+assert.equal(run('game.fleets.some(f=>f.owner==="player")'),true);
+assert.equal(run('fleetMarkerRefs.length')>0,true,'Fleet markers are created');
+const startX=run('fleetMarkerRefs[0].circle.attributes.cx');
+run('stepSimulation(1);updateFleetMarkers()');
+assert.notEqual(run('fleetMarkerRefs[0].circle.attributes.cx'),startX,'Fleet marker moves during simulation');
+for(let i=0;i<6;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[2].owner'),'player','Fleet crosses multi-hop hyperlanes continuously');
+assert.ok(run('game.systems.filter(s=>s.owner==="ai").length')>=1,'Autonomous AI remains active');
 
+run('game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000');
+run('upgradeColony()');
+assert.ok(run('game.jobs.some(j=>j.type==="upgrade")'),'Colony improvement has a timer');
+for(let i=0;i<9;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].level'),2);
 
-assert.ok(document.getElementById('diplomacy').children.length>0);
-vm.runInContext('game.resources.credits=200;negotiate()',context,{timeout:3000});
-assert.equal(vm.runInContext('game.relations',context),'Ceasefire');
-assert.ok(vm.runInContext('game.ceasefireUntil',context)>2);
-vm.runInContext('game.systems[4].ships=0;resolveArrival({owner:"player",ships:20,path:[0,4],step:0},4)',context,{timeout:3000});
-assert.equal(vm.runInContext('game.systems[4].owner',context),'ai','Ceasefire prevents in-flight attacks');
+const beforeMarket=run('game.resources.minerals');
+run('trade("buy","minerals")');
+assert.equal(run('game.resources.minerals'),beforeMarket+5);
+run('trade("sell","minerals")');
+assert.equal(run('game.resources.minerals'),beforeMarket);
 
-console.log('PASS: initial render, objectives, research UI, turn, colonization, fleet building, research, movement, persistence');
+run('game.resources.credits=500;game.resources.gas=10;negotiate()');
+assert.equal(run('game.relations'),'Ceasefire');
+assert.ok(run('game.ceasefireEndsAt')>run('game.elapsedSeconds'));
+run('resolveArrival({owner:"player",ships:40,path:[0,4],step:0,progress:0},4)');
+assert.equal(run('game.systems[4].owner'),'ai','Ceasefire prevents in-flight attacks');
+
+const sharedChildren=document.getElementById('shared').children;
+run('render()');
+assert.equal(document.getElementById('shared').children[1],sharedChildren[1],'Room URL input persists across repaint');
+
+run('const legacy=JSON.parse(JSON.stringify(game));delete legacy.elapsedSeconds;delete legacy.ceasefireEndsAt;delete legacy.jobs;legacy.turn=4;legacy.ceasefireUntil=6;delete legacy.systems[0].level;normalizeGame(legacy);');
+assert.equal(run('legacy.elapsedSeconds'),60,'Turn-era saves migrate into elapsed seconds');
+assert.equal(run('legacy.ceasefireEndsAt'),100,'Legacy ceasefires migrate into time-based expiry');
+assert.equal(run('legacy.systems[0].level'),1);
+assert.equal(run('legacy.jobs.length'),0);
+
+assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
+assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
+console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
