@@ -1,0 +1,28 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const vm=require('node:vm');
+const html=fs.readFileSync('index.html','utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+assert.ok(script,'Inline game script exists');
+const elements=new Map();
+function element(){return {textContent:'',innerHTML:'',style:{},className:'',classList:{add(){}},children:[],setAttribute(){},appendChild(c){this.children.push(c);return c;},replaceChildren(...c){this.children=c;},addEventListener(){}};}
+const document={getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},createElement:element,createElementNS:element};
+const store=new Map();
+const context={document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},confirm:()=>true,console,Set,Math,JSON,Array,Object,Number};
+vm.createContext(context);vm.runInContext(script,context,{timeout:3000});
+assert.match(document.getElementById('turnLabel').textContent,/Turn 1/);
+assert.ok(document.getElementById('actions').children.length>0);
+assert.ok(document.getElementById('objectives').children.length===5);
+assert.ok(document.getElementById('research').children.length>0);
+vm.runInContext('nextTurn()',context,{timeout:3000});
+assert.match(document.getElementById('turnLabel').textContent,/Turn 2/);
+vm.runInContext('selected=1;colonize()',context,{timeout:3000});
+assert.equal(vm.runInContext('game.systems[1].owner',context),'player');
+vm.runInContext('selected=0;build("fleet")',context,{timeout:3000});
+assert.ok(vm.runInContext('game.systems[0].ships',context)>=5);
+vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:3000});
+assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
+vm.runInContext('send(2)',context,{timeout:3000});
+assert.ok(vm.runInContext('game.fleets.length',context)>0);
+assert.ok(store.has('starfall-dominion-v03'));
+console.log('PASS: initial render, objectives, research UI, turn, colonization, fleet building, research, movement, persistence');
