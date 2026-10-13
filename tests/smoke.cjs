@@ -24,10 +24,14 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v10'));
+assert.ok(store.has('starfall-dominion-v12'));
 assert.ok(document.getElementById('export'));
 assert.ok(document.getElementById('import'));
 assert.ok(document.getElementById('importFile'));
+assert.ok(document.getElementById('empire').children.length===6);
+assert.ok(document.getElementById('help'));
+assert.ok(document.getElementById('tutorial'));
+
 
 assert.ok(document.getElementById('diplomacy').children.length>0);
 vm.runInContext('game.resources.credits=200;negotiate()',context,{timeout:3000});
