@@ -173,6 +173,16 @@ run('game.systems[2].owner="player";game.systems[2].explored=true;game.systems[2
 const beforeResearch=run('game.research');
 assert.equal(run('resolveAnomaly(2,1)'),true,'Anomaly scientific option succeeds');
 assert.ok(run('game.research')>beforeResearch,'Scientific choice rewards research');
+run('game=initial();game.systems[3].owner="player";game.systems[3].explored=true;game.systems[3].anomalyPending=true;');
+const baselineScience=run('productionForecast().research');
+assert.equal(run('resolveAnomaly(3,1)'),true,'Ancient archives can be decoded');
+assert.equal(run('game.systems[3].anomalyChoice'),1,'Anomaly decision persists');
+assert.equal(run('productionForecast().research'),baselineScience+1,'Decoded archives grant ongoing research');
+run('game.systems[5].owner="player";game.systems[5].explored=true;game.systems[5].anomalyPending=true;');
+assert.ok(run('anomalyBenefit(5,1)').includes('defense'),'Station choice previews permanent defense bonus');
+assert.equal(run('resolveAnomaly(5,1)'),true,'Abandoned station systems can be restored');
+run('const oldAnomaly=initial();delete oldAnomaly.systems[1].anomalyChoice;normalizeGame(oldAnomaly);');
+assert.equal(run('oldAnomaly.systems[1].anomalyChoice'),null,'Older saves migrate anomaly choice');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
