@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: starfall-dominion-galaxy
+    runtime: node
+    plan: starter
+    branch: main
+    buildCommand: node --version
+    startCommand: node multiplayer/server.cjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: STARFALL_DATA_PATH
+        value: /var/data/galaxy.json
+      - key: STARFALL_INVITE_CODE
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://spluxec.github.io
+    disk:
+      name: starfall-galaxy-data
+      mountPath: /var/data
+      sizeGB: 1
