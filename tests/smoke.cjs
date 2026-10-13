@@ -12,7 +12,7 @@ const context={document,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v
 vm.createContext(context);vm.runInContext(script,context,{timeout:3000});
 assert.match(document.getElementById('turnLabel').textContent,/Turn 1/);
 assert.ok(document.getElementById('actions').children.length>0);
-assert.ok(document.getElementById('objectives').children.length===6);
+assert.ok(document.getElementById('objectives').children.length===7);
 assert.ok(document.getElementById('research').children.length>0);
 vm.runInContext('nextTurn()',context,{timeout:3000});
 assert.match(document.getElementById('turnLabel').textContent,/Turn 2/);
@@ -24,7 +24,16 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v21'));
+assert.ok(store.has('starfall-dominion-v22'));
+assert.equal(vm.runInContext('game.resources.titanium',context),16);
+assert.equal(vm.runInContext('game.resources.crystals',context),12);
+assert.equal(vm.runInContext('game.resources.gas',context),8);
+vm.runInContext('selected=0;build("extractor")',context,{timeout:3000});
+assert.equal(vm.runInContext('game.systems[0].extractors',context),1);
+const crystalsBefore=vm.runInContext('game.resources.crystals',context);
+vm.runInContext('nextTurn()',context,{timeout:3000});
+assert.equal(vm.runInContext('game.resources.crystals',context),crystalsBefore+3);
+
 assert.ok(document.getElementById('export'));
 assert.ok(document.getElementById('import'));
 assert.ok(document.getElementById('importFile'));
