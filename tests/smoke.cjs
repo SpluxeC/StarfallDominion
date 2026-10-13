@@ -24,11 +24,16 @@ vm.runInContext('game.research=200;researchTech("navigation")',context,{timeout:
 assert.equal(vm.runInContext('game.techs.includes("navigation")',context),true);
 vm.runInContext('send(2)',context,{timeout:3000});
 assert.ok(vm.runInContext('game.fleets.length',context)>0);
-assert.ok(store.has('starfall-dominion-v09'));
+assert.ok(store.has('starfall-dominion-v10'));
 assert.ok(document.getElementById('export'));
+assert.ok(document.getElementById('import'));
+assert.ok(document.getElementById('importFile'));
+
 assert.ok(document.getElementById('diplomacy').children.length>0);
 vm.runInContext('game.resources.credits=200;negotiate()',context,{timeout:3000});
 assert.equal(vm.runInContext('game.relations',context),'Ceasefire');
 assert.ok(vm.runInContext('game.ceasefireUntil',context)>2);
+vm.runInContext('game.systems[4].ships=0;resolveArrival({owner:"player",ships:20,path:[0,4],step:0},4)',context,{timeout:3000});
+assert.equal(vm.runInContext('game.systems[4].owner',context),'ai','Ceasefire prevents in-flight attacks');
 
 console.log('PASS: initial render, objectives, research UI, turn, colonization, fleet building, research, movement, persistence');
