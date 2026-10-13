@@ -26,6 +26,10 @@ jobs:
           cp multiplayer/index.html public/multiplayer/index.html
           cp multiplayer/planet3d.js public/multiplayer/planet3d.js
           test -s public/multiplayer/planet3d.js
+      - name: Validate published 3D client
+        run: |
+          node --check public/multiplayer/planet3d.js
+          node -e "const fs=require('fs');const html=fs.readFileSync('public/multiplayer/index.html','utf8');if(!html.includes('src=\"./planet3d.js\"'))process.exit(1)"
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website artifact
