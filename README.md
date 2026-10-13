@@ -1,4 +1,4 @@
-# Starfall Dominion — Browser Prototype v0.1
+# Starfall Dominion — Browser Prototype v0.3
 
 A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
 
@@ -21,3 +21,20 @@ For a public static demo, publish the root `index.html` using GitHub Pages (Sett
 
 ## Next milestone
 Move simulation rules into independently tested modules, add research and ship types, then prototype a server-authoritative persistent multiplayer backend.
+
+## Prototype v0.3 additions
+- Five research technologies, science generation and practical technology bonuses.
+- Fleet dispatch percentages (25%, 50%, 100%).
+- Multi-hop fleet travel unlocked by Hyperlane Navigation.
+- Five in-game objectives guiding a first playtest.
+- Automatic Node.js smoke tests on pushes via GitHub Actions (`node tests/smoke.cjs`).
+
+## Interactive playtest checklist
+1. Select Vega and colonize it.
+2. Select Solace and build another mine.
+3. End turns until you can research a technology.
+4. Build ships at Solace and dispatch a fleet to a neighboring system.
+5. Continue until the rival AI contests territory.
+6. Reload the page and confirm progress persists.
+
+Live site, if GitHub Pages has been enabled: https://spluxec.github.io/StarfallDominion/
