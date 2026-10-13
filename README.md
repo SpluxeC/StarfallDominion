@@ -1,4 +1,4 @@
-# Starfall Dominion — Browser Playtest v2.0
+# Starfall Dominion — Browser Playtest v4.0
 
 A **playable, single-player browser vertical slice** of the planned persistent galaxy space strategy game.
 
@@ -106,3 +106,20 @@ The game remains a standalone single-player prototype. The v2.0 source is commit
 node server/rooms.cjs
 ```
 It listens on `http://localhost:8787` by default. Configure `PORT` and `ALLOWED_ORIGINS` for development; use an HTTPS reverse proxy when hosting remotely. Run the tests with `node tests/smoke.cjs` and `node --test tests/rooms.test.cjs`.
+
+## v3.0 Gameplay Upgrade
+- Galactic Exchange: buy or sell 5 units of minerals, alloys, energy, food, titanium, crystals, or gas using credits, with a spread between buy and sell prices.
+- Planetary colony upgrades (levels 1–4): each level adds credit and science income.
+- Previous local saves are migrated and continue to use the same browser link.
+
+## v4.0 Experimental Shared Galaxy Lab
+- Browser game adds **Create room**, **Join room**, **Load shared**, and **Publish turn** controls.
+- A standalone Node.js HTTP room server lives in `server/rooms.cjs`. It uses in-memory rooms and optimistic revisions to reject conflicting uploads.
+- Local server: `node server/rooms.cjs` (default port 8787; `PORT` configurable).
+- Server tests: `node --test tests/rooms.test.cjs`. Browser smoke tests: `node tests/smoke.cjs`.
+- By default, cross-origin requests are permitted from `https://spluxec.github.io` and local development origins. Configure `ALLOWED_ORIGINS` to adjust. Deploy the Node.js server separately on a host that supports Node and HTTPS, then enter its HTTPS address in the game under **Shared Galaxy Lab**.
+- **Security warning:** Shared rooms have no accounts, authentication, access-control lists, rate limiting, or persistent database. Anyone with a room code and server access can read/modify its state. Do not deploy as a production multiplayer service or store sensitive information there.
+- **Persistence warning:** Room data is lost when the server restarts. The public GitHub Pages link hosts only the browser client, not the Node.js server.
+- **Game-design limitation:** This is asynchronous collaborative turn-sharing of one game state, not a simultaneous/authoritative multiplayer game. Players are not assigned separate factions; the server does not validate game moves or protect against cheating.
+
+The v4.0 label denotes an **experimental architecture milestone**, not a finished multiplayer release. GitHub Pages deployment and end-to-end browser/network testing must be verified separately.
