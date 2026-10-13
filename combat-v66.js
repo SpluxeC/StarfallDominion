@@ -108,10 +108,10 @@ const StarfallCombat = (() => {
     ensure(e);
     if(!Number.isFinite(dt)||dt<=0)return sync(e);
     // Snapshots make volleys simultaneous: units destroyed this tick still fire.
-    const attack=volleyPlan(e.attackUnits,(context.attackWeapons?1.6:1)*(context.attackMilitary?1.2:1)*(context.guard?0.75:1),dt);
+    const attack=volleyPlan(e.attackUnits,(context.attackWeapons?1.6:1)*(context.advancedWeapons?1.25:1)*(context.commandNet?1.2:1)*(context.attackMilitary?1.2:1)*(context.guard?0.75:1),dt);
     const defend=volleyPlan(e.defendUnits,1,dt,Math.max(0,context.fortress||0)+(context.defendShields?1:0));
     for(const shot of attack)strike(e.defendUnits,shot,context.defendShields?0.08:0);
-    for(const shot of defend)strike(e.attackUnits,shot,context.guard?0.07:context.attackShields?0.08:0);
+    for(const shot of defend)strike(e.attackUnits,shot,context.guard?0.07:context.reinforcedHulls?0.2:context.attackShields?0.08:0);
     e.attackUnits=e.attackUnits.filter(u=>u.hull>0);
     e.defendUnits=e.defendUnits.filter(u=>u.hull>0);
     return sync(e);
