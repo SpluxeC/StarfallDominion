@@ -12,3 +12,4 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/smoke.cjs
+      - run: node --test tests/rooms.test.cjs
