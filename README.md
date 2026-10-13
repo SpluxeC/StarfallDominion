@@ -57,7 +57,7 @@ This section documents the earlier offline prototype. The newer multiplayer alph
 
 Open [the expected GitHub Pages URL](https://spluxec.github.io/StarfallDominion/) once Pages is configured, or open `index.html` locally in a modern browser. No JavaScript build step or package installation is needed for the browser client.
 
-If GitHub Pages returns a 404, the repository owner must enable **Settings → Pages → Deploy from a branch → main → /(root)**. A source commit alone cannot confirm that the site is publicly deployed.
+If GitHub Pages returns a 404, the repository owner must open **Settings → Pages** and select **GitHub Actions** as the build/deployment source. The new `.github/workflows/pages.yml` workflow publishes both browser clients after every push to `main`. A source commit or workflow file does not prove the Pages site has deployed; check the workflow run for publishing errors.
 
 ## Real-time gameplay — no End Turn button
 
