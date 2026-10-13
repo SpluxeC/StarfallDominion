@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#09142a">
+<title>Starfall Dominion — Persistent Multiplayer RTS</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#eaf4ff;background:#060c1b;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 26% 0,#192e5c,#080f23 48%,#050a15)}
+button,input,select{font:inherit}button{cursor:pointer;color:#e8f7ff;background:#1c3b69;border:1px solid #5079b0;border-radius:8px;padding:9px 11px;min-height:38px}
+button:hover:not(:disabled){background:#29558d;border-color:#7ad9fb}button:disabled{cursor:not-allowed;opacity:.4}
+button.primary{background:#136b95;border-color:#5cdeff;font-weight:750}button.danger{background:#5f304b;border-color:#b56d88}
+input,select{color:#edf7ff;background:#101e38;border:1px solid #49658c;border-radius:8px;padding:9px;min-width:0}
+input:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid #a2f2ff;outline-offset:2px}
+h1{font-size:clamp(1.15rem,2.2vw,1.6rem);letter-spacing:.12em;margin:0;font-weight:850}
+h2{margin:0 0 12px;font-size:1rem;color:#c6e5ff;letter-spacing:.035em}h3{margin:12px 0 8px;font-size:.88rem;color:#8adbf5}
+p{margin:8px 0;line-height:1.45}.muted,small{color:#9caecb}
+header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp(12px,2vw,25px);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 5px 30px #0005}
+.brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.flag{font-size:.75rem;font-weight:750;border:1px solid #5596ac;color:#b0eeff;padding:5px 9px;border-radius:99px;background:#12384b}
+.resources{display:flex;flex-wrap:wrap;gap:6px}.resources span{padding:7px 9px;border-radius:7px;background:#182c4e;border:1px solid #36567b88;font-size:.77rem;font-variant-numeric:tabular-nums}
+.shell{max-width:1660px;padding:14px;margin:auto}.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}.panel{background:linear-gradient(160deg,#13264ae8,#0b1730f5);border:1px solid #344d74;border-radius:14px;padding:15px;box-shadow:0 12px 30px #0004}.stack{display:flex;flex-direction:column;gap:12px}
+#map{width:100%;min-height:440px;height:min(72vh,760px);display:block;border-radius:10px;background:radial-gradient(ellipse at 55% 35%,#152d60,#080e24 70%);border:1px solid #3b618f;touch-action:manipulation}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:.79rem;color:#b9cbe5;margin-top:10px}.legend b{display:inline-block;height:9px;width:9px;border-radius:50%;margin-right:5px}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.actions button{font-size:.82rem}.line{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid #ffffff14;font-size:.86rem}.line strong{font-variant-numeric:tabular-nums;color:#bceaff}.field{display:flex;flex-direction:column;gap:5px;margin:10px 0}.field label{font-size:.8rem;color:#aac5dd}.field input,.field select{width:100%}
+.banner{margin-bottom:12px;padding:13px;background:#142946;border:1px solid #4c80a5;border-radius:10px}.banner strong{color:#bcecff}
+#log{max-height:230px;overflow:auto;font-size:.8rem}#log p{border-bottom:1px solid #ffffff12;padding:7px 0}
+#notice{color:#ffe0a4;font-size:.84rem;min-height:20px}#setup{max-width:640px;margin:35px auto}.status{font-size:.78rem;color:#a5bddd}
+.tech{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #ffffff15}.tech small{display:block;margin-top:3px}.tech button{min-width:100px}
+.details{font-size:.86rem}#orders p{font-size:.84rem}footer{color:#8ca0c0;text-align:center;padding:20px;font-size:.75rem}
+.hidden{display:none!important}
+@media(max-width:960px){.grid{grid-template-columns:1fr}.stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}#map{height:60vh;min-height:350px}}
+@media(max-width:560px){header{padding:12px}.shell{padding:8px}.panel{padding:12px}#map{height:50vh;min-height:295px}.stack{grid-template-columns:1fr}button{min-height:42px}}
+</style></head>
+<body>
+<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span></header>
+<main class="shell">
+<section id="setup" class="panel">
+<h2>Join the persistent galaxy</h2>
+<p class="muted">Unlike the older local prototype, this galaxy runs on a server. Each person gets their own empire, and time keeps moving while players are offline.</p>
+<div class="field"><label for="endpoint">Galaxy server address</label><input id="endpoint" type="url" placeholder="https://your-galaxy-server.example" autocomplete="url"></div>
+<p class="muted" style="font-size:.79rem">If this page is hosted by the galaxy server, leave the address blank. GitHub Pages requires a separate HTTPS server address.</p>
+<div class="field"><label for="commander">Commander name</label><input id="commander" maxlength="24" placeholder="Your commander name"></div>
+<div class="field"><label for="invite">Invitation code (if required)</label><input id="invite" type="password" placeholder="Given by your host"></div>
+<div class="actions"><button id="join" class="primary">Create my empire</button><button id="reconnect">Reconnect existing empire</button><button id="forget" class="danger">Forget local login</button></div>
+<p id="setupStatus" class="muted" role="status"></p>
+</section>
+<div id="game" class="grid hidden">
+<section class="stack">
+<div class="panel">
+<div class="line"><h2>THE PERMANENT REACH</h2><strong id="universe">Galaxy online</strong></div>
+<svg id="map" viewBox="0 0 1050 660" role="img" aria-label="Interactive multiplayer star map"></svg>
+<div class="legend"><span><b style="background:#6be1ff"></b>Your empire</span><span><b style="background:#ff92aa"></b>Hostile/pirate</span><span><b style="background:#d2b477"></b>Neutral</span><span><b style="background:#52647d"></b>Unscouted</span></div>
+</div>
+<div class="panel"><h2>Strategic intelligence</h2><div id="empireSummary"></div><p class="muted" style="font-size:.8rem">Distant systems are obscured. The server decides what your empire may see.</p></div>
+<div class="panel"><h2>Galactic event feed</h2><div id="log"></div></div>
+</section>
+<aside class="stack">
+<section class="panel"><h2 id="selectedName">Select a star system</h2><div class="details" id="details"></div><div id="orders"></div></section>
+<section class="panel"><h2>Research</h2><div id="research"></div></section>
+<section class="panel"><h2>Diplomacy & trade</h2><div id="diplomacy"></div></section>
+<section class="panel"><h2>Active projects</h2><div id="projects"></div></section>
+<section class="panel"><h2>Account</h2><div id="account"></div></section>
+</aside>
+</div>
+<p id="notice" role="status"></p>
+</main>
+<footer>Experimental shared-galaxy RTS. An external Node.js galaxy server is required for persistent multiplayer; the public GitHub Pages client alone cannot run it.</footer>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+let galaxy=null,selected=null,api='',token='',connected=false,reconnectTimer=null,streamController=null,stopped=false,connecting=false;
+const RESOURCE_NAMES={credits:'Credits',minerals:'Minerals',alloys:'Alloys',energy:'Energy',food:'Food',titanium:'Titanium',crystals:'Crystals',gas:'Gas'};
+const badge=(text,cls='')=>{const span=document.createElement('span');span.textContent=text;span.className=cls;return span;};
+function storageKey(u){return 'starfall-mp-token:'+u;}
+function resolveApi(){const raw=$('endpoint').value.trim().replace(/\/$/,'');if(!raw){if(location.hostname.endsWith('github.io'))throw Error('Enter the HTTPS address of your separately hosted galaxy server.');return location.origin;}
+ const u=new URL(raw);if(!['https:','http:'].includes(u.protocol))throw Error('Use an HTTP(S) server address');
+ if(location.protocol==='https:'&&u.protocol!=='https:'&&!['localhost','127.0.0.1'].includes(u.hostname))throw Error('Use HTTPS for the galaxy server');return u.origin;
+}
+function message(text,error=false){$('notice').textContent=text||'';$('notice').style.color=error?'#ffaaa7':'#a7e6c5';$('setupStatus').textContent=text||'';}
+async function request(url,body,authorized=true){
+ const headers={'Content-Type':'application/json'};if(authorized&&token)headers.Authorization='Bearer '+token;
+ const response=await fetch(api+url,{method:body?'POST':'GET',headers,body:body?JSON.stringify(body):undefined,cache:'no-store'});
+ const data=await response.json().catch(()=>({}));if(!response.ok)throw Error(data.error||'Server returned '+response.status);return data;
+}
+function showSetup(){stopped=true;if(streamController)streamController.abort();connected=false;$('setup').classList.remove('hidden');$('game').classList.add('hidden');$('connection').textContent='Server disconnected';}
+async function join(){
+ try{api=resolveApi();const name=$('commander').value.trim();if(name.length<2)throw Error('Enter a commander name');
+ const data=await request('/api/join',{name,invite:$('invite').value},false);
+ token=data.token;localStorage.setItem(storageKey(api),token);localStorage.setItem('starfall-mp-server',api);message('Empire created. Welcome to the galaxy.');start(data.galaxy);
+ }catch(error){message(error.message,true);}
+}
+async function reconnect(){
+ try{api=resolveApi();token=localStorage.getItem(storageKey(api))||'';if(!token)throw Error('No saved identity for this server. Create an empire first.');
+ const data=await request('/api/state');message('Reconnected to persistent galaxy.');start(data);
+ }catch(error){message(error.message,true);}
+}
+function start(data){
+ galaxy=data;selected=selected===null?data.systems.find(x=>x.owner===data.you.id)?.id??0:selected;
+ $('setup').classList.add('hidden');$('game').classList.remove('hidden');stopped=false;render();connectStream();
+}
+async function command(body){
+ try{await request('/api/command',body);message('Order accepted by galaxy server.');}catch(error){message(error.message,true);}
+}
+function el(tag,attrs,parent){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);parent.appendChild(n);return n;}
+function labelLine(parent,title,value){const line=document.createElement('div');line.className='line';const k=document.createElement('span');k.textContent=title;const v=document.createElement('strong');v.textContent=value;line.append(k,v);parent.append(line);}
+function button(text,fn,disabled=false,primary=false){const b=document.createElement('button');b.textContent=text;b.disabled=disabled;if(primary)b.className='primary';b.addEventListener('click',fn);return b;}
+function div(cls){const d=document.createElement('div');d.className=cls;return d;}
+function own(x){return x&&x.owner===galaxy.you.id;}
+function affordable(cost){return Object.entries(cost).every(([k,v])=>galaxy.you.resources[k]>=v);}
+function systemName(id){return galaxy.systems[id]?.name||'Unknown system';}
+function renderMap(){
+ const svg=$('map');svg.replaceChildren();for(let i=0;i<130;i++){const x=(i*151+39)%1050,y=(i*197+71)%660;el('circle',{cx:x,cy:y,r:i%7===0?1.3:.7,fill:'#a2b9e8',opacity:.2+i%5*.1},svg);}
+ for(const [a,b] of galaxy.edges){const x=galaxy.systems[a],y=galaxy.systems[b];el('line',{x1:x.x,y1:x.y,x2:y.x,y2:y.y,stroke:'#335985','stroke-width':2,'stroke-dasharray':'5 7',opacity:.65},svg);}
+ for(const f of galaxy.fleets){const a=galaxy.systems[f.path[f.hop]],b=galaxy.systems[f.path[f.hop+1]];if(!a||!b)continue;const progress=1-Math.max(0,f.remaining)/f.hopTotal;const cx=a.x+(b.x-a.x)*progress,cy=a.y+(b.y-a.y)*progress;el('circle',{cx,cy,r:7,fill:f.owner===galaxy.you.id?'#62deff':'#ff849e',stroke:'#ffffff','stroke-width':1.4},svg);}
+ for(const s of galaxy.systems){
+  const friendly=own(s),enemy=s.visible&&s.owner&&s.owner!==galaxy.you.id;
+  const color=!s.visible?'#556984':friendly?'#62deff':enemy?'#ff879c':s.owner===null?'#d8bf83':'#c896f6';
+  const g=el('g',{role:'button',tabindex:'0',style:'cursor:pointer','aria-label':s.name+', '+(s.visible?'scouted':'unknown')},svg);
+  if(selected===s.id)el('circle',{cx:s.x,cy:s.y,r:28,fill:'none',stroke:'#e2f8ff','stroke-width':2,'stroke-dasharray':'5 5'},g);
+  el('circle',{cx:s.x,cy:s.y,r:20,fill:color,opacity:.14},g);
+  el('circle',{cx:s.x,cy:s.y,r:10,fill:color,stroke:'#e4f3ff','stroke-width':1.4},g);
+  const name=el('text',{x:s.x,y:s.y+31,fill:'#e3ecff','font-size':13,'text-anchor':'middle'},g);name.textContent=s.name;
+  if(s.visible&&s.ships!==null){const fleet=el('text',{x:s.x,y:s.y-17,fill:color,'font-size':12,'text-anchor':'middle'},g);fleet.textContent='◆ '+s.ships;}
+  const pick=()=>{selected=s.id;renderSelected();renderMap();};g.addEventListener('click',pick);g.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();pick();}});
+ }
+}
+function renderSelected(){
+ const s=galaxy.systems[selected]||galaxy.systems[0],box=$('details'),orders=$('orders');$('selectedName').textContent=s.name;box.replaceChildren();orders.replaceChildren();
+ if(!s.visible){const p=document.createElement('p');p.className='muted';p.textContent='Unscouted system. Expand to an adjacent star to reveal its status.';box.append(p);return;}
+ const owner=own(s)?'Your empire':s.owner==='pirates'?'Pirates':s.owner?galaxy.empires.find(e=>e.id===s.owner)?.name||'Other empire':'Unclaimed';
+ labelLine(box,'Control',owner);labelLine(box,'Deposit',s.deposit||'Unknown');labelLine(box,'Colony level',s.level??'—');labelLine(box,'Stationed ships',s.ships??'Unknown');
+ if(!own(s)){
+  if(s.owner===null){const b=button('Found colony',()=>command({type:'colonize',system:s.id}),!affordable(galaxy.costs.colony),true);orders.append(b);const info=document.createElement('p');info.textContent='Requires 65 credits, 30 alloys and an adjacent owned system.';orders.append(info);}
+  else{const p=document.createElement('p');p.className='muted';p.textContent='Send a fleet from a friendly system to contest this system.';orders.append(p);}return;
+ }
+ for(const [k,v] of Object.entries(s.buildings))labelLine(box,k[0].toUpperCase()+k.slice(1),v);
+ const heading=document.createElement('h3');heading.textContent='Construction orders';orders.append(heading);
+ const buttons=div('actions');orders.append(buttons);
+ for(const type of ['mine','reactor','farm','shipyard','extractor','frigate','cruiser','upgrade']){
+  const cost=type==='upgrade'?Object.fromEntries(Object.entries(galaxy.costs.upgrade).map(([k,v])=>[k,v*s.level])):galaxy.costs[type];
+  const disabled=!affordable(cost)||((type==='frigate'||type==='cruiser')&&!s.buildings.shipyard)||(type==='upgrade'&&s.level>=4)||galaxy.jobs.filter(j=>j.system===s.id).length>=4;
+  const costText=Object.entries(cost).map(([k,v])=>v+' '+k.slice(0,1).toUpperCase()).join(' / ');
+  buttons.append(button(type[0].toUpperCase()+type.slice(1)+' · '+costText,()=>command({type:'build',system:s.id,building:type}),disabled));
+ }
+ const heading2=document.createElement('h3');heading2.textContent='Fleet deployment';orders.append(heading2);
+ const form=div('field');const ships=document.createElement('input');ships.type='number';ships.min=1;ships.max=s.ships;ships.value=Math.max(1,Math.floor(s.ships/2));ships.setAttribute('aria-label','Ships to dispatch');
+ const target=document.createElement('select');target.setAttribute('aria-label','Destination system');
+ galaxy.systems.filter(x=>x.id!==s.id&&x.visible).forEach(x=>{const opt=document.createElement('option');opt.value=x.id;opt.textContent=x.name+(x.owner===galaxy.you.id?' (friendly)':x.owner?' (hostile)':' (unclaimed)');target.append(opt);});
+ form.append(ships,target);orders.append(form);
+ orders.append(button('Dispatch fleet',()=>command({type:'fleet',from:s.id,to:Number(target.value),ships:Number(ships.value)}),s.ships<1||!target.options.length,true));
+}
+function renderResearch(){
+ const root=$('research');root.replaceChildren();labelLine(root,'Available science',Math.floor(galaxy.you.science));
+ for(const [id,t] of Object.entries(galaxy.research)){
+  const d=div('tech'),info=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');strong.textContent=t.name;small.textContent=t.description;info.append(strong,small);d.append(info);
+  const completed=galaxy.you.techs.includes(id);
+  d.append(button(completed?'Researched':t.science+' sci',()=>command({type:'research',tech:id}),completed||galaxy.you.science<t.science||galaxy.you.resources.crystals<t.crystals));root.append(d);
+ }
+}
+function renderDiplomacy(){
+ const root=$('diplomacy');root.replaceChildren();
+ const others=galaxy.empires.filter(e=>e.id!==galaxy.you.id);
+ for(const e of others){const wrap=div('line'),span=document.createElement('span');span.textContent=e.name+' · '+e.colonies+' colonies';span.style.color=e.color;wrap.append(span,button('Offer pact',()=>command({type:'offerPact',target:e.id})));root.append(wrap);}
+ if(others.length){const title=document.createElement('h3');title.textContent='Propose resource trade';root.append(title);
+  const target=document.createElement('select'),giveRes=document.createElement('select'),wantRes=document.createElement('select');
+  for(const e of others){const option=document.createElement('option');option.value=e.id;option.textContent=e.name;target.append(option);}
+  for(const key of Object.keys(RESOURCE_NAMES)){for(const select of [giveRes,wantRes]){const option=document.createElement('option');option.value=key;option.textContent=RESOURCE_NAMES[key];select.append(option);}}
+  wantRes.value='alloys';const amount=document.createElement('input'),receive=document.createElement('input');amount.type=receive.type='number';amount.min=receive.min=1;amount.max=receive.max=500;amount.value=receive.value='10';amount.setAttribute('aria-label','Amount offered');receive.setAttribute('aria-label','Amount requested');
+  const form=div('field');for(const el of [target,giveRes,amount,wantRes,receive])form.append(el);
+  form.append(button('Send trade proposal',()=>command({type:'offerTrade',target:target.value,resource:giveRes.value,give:Number(amount.value),returnResource:wantRes.value,receive:Number(receive.value)})));root.append(form);
+ }
+ for(const offer of galaxy.offers.filter(o=>o.to===galaxy.you.id)){
+  const item=div('line'),sender=galaxy.empires.find(e=>e.id===offer.from);
+  const text=document.createElement('span');text.textContent=(sender?.name||'Other empire')+' offers '+(offer.kind==='pact'?'a non-aggression pact':offer.give+' '+offer.resource+' for '+offer.receive+' '+offer.returnResource);
+  item.append(text,button('Accept',()=>command({type:'acceptOffer',offer:offer.id})));root.append(item);
+ }
+ for(const t of galaxy.treaties.filter(t=>t.active&&t.until>galaxy.time)){const item=div('line');const text=document.createElement('span');text.textContent='Pact: '+Math.ceil(t.until-galaxy.time)+'s remaining';item.append(text,button('Break pact',()=>command({type:'breakPact',treaty:t.id})));root.append(item);}
+ if(!others.length){const p=document.createElement('p');p.className='muted';p.textContent='Invite friends to join the same galaxy server. Each friend gets a separate empire.';root.append(p);}
+}
+function render(){
+ if(!galaxy)return;$('connection').textContent=(connected?'● LIVE':'◌ RECONNECTING')+' · '+Math.floor(galaxy.time)+'s';
+ $('resources').replaceChildren(...Object.entries(galaxy.you.resources).map(([k,v])=>badge((RESOURCE_NAMES[k]||k)+': '+Math.floor(v))));
+ $('universe').textContent='SERVER TIME +'+Math.floor(galaxy.time)+'s';
+ const summary=$('empireSummary');summary.replaceChildren();
+ labelLine(summary,'Commander',galaxy.you.name);labelLine(summary,'Colonies',galaxy.empires.find(e=>e.id===galaxy.you.id)?.colonies||0);
+ labelLine(summary,'Reputation',galaxy.you.reputation);labelLine(summary,'Science / 20 seconds',Math.floor(galaxy.income.science));labelLine(summary,'Credits / 20 seconds',Math.floor(galaxy.income.credits));
+ const logs=$('log');logs.replaceChildren(...galaxy.events.map(ev=>{const p=document.createElement('p');p.textContent='T+'+Math.floor(ev.time)+'s · '+ev.message;return p;}));
+ const projects=$('projects');projects.replaceChildren();if(!galaxy.jobs.length){const p=document.createElement('p');p.className='muted';p.textContent='No active construction orders.';projects.append(p);}
+ for(const j of galaxy.jobs)labelLine(projects,systemName(j.system)+' · '+j.type,Math.ceil(j.remaining)+'s');
+ const acc=$('account');acc.replaceChildren();const p=document.createElement('p');p.className='muted';p.textContent='Identity is saved locally for this server. Losing your token means losing access to this empire.';acc.append(p);
+ const owned=galaxy.systems.some(s=>s.owner===galaxy.you.id);
+ if(!owned)acc.append(button('Establish exile recovery outpost',()=>command({type:'recover'}),galaxy.you.recoveryReadyAt>galaxy.time,true));
+ acc.append(button('Change server / reconnect',showSetup));
+ renderMap();renderSelected();renderResearch();renderDiplomacy();
+}
+function acceptSnapshot(data){if(!data||!data.you||!Array.isArray(data.systems))return;if(!galaxy||data.version>=galaxy.version){galaxy=data;connected=true;render();}}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function connectStream(){
+ if(connecting)return;connecting=true;
+ while(!stopped&&token){
+  let controller;
+  try{
+   controller=new AbortController();streamController=controller;
+   const response=await fetch(api+'/api/events',{headers:{Authorization:'Bearer '+token},signal:controller.signal,cache:'no-store'});
+   if(response.status===401){message('Login expired. Reconnect or create a new empire.',true);showSetup();break;}
+   if(!response.ok||!response.body)throw Error('Live stream is unavailable');
+   connected=true;render();
+   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
+   while(!stopped){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});let end;while((end=buffer.indexOf('\n\n'))>=0){const raw=buffer.slice(0,end);buffer=buffer.slice(end+2);const data=raw.split('\n').filter(line=>line.startsWith('data: ')).map(line=>line.slice(6)).join('\n');if(data){try{acceptSnapshot(JSON.parse(data));}catch{}}}if(buffer.length>200000)buffer='';}
+  }catch(error){if(!stopped){connected=false;message('Live connection interrupted; reconnecting…',true);try{acceptSnapshot(await request('/api/state'));}catch{}}}
+  finally{if(controller)controller.abort();}
+  if(!stopped)await wait(2300);
+ }
+ connecting=false;
+}
+$('join').addEventListener('click',join);$('reconnect').addEventListener('click',reconnect);
+$('forget').addEventListener('click',()=>{try{const host=resolveApi();localStorage.removeItem(storageKey(host));token='';message('Local login removed. Your server empire still exists.');}catch(error){message(error.message,true);}});
+$('endpoint').value=localStorage.getItem('starfall-mp-server')||'';
+if(!$('endpoint').value&&!location.hostname.endsWith('github.io'))$('endpoint').placeholder='This server ('+location.origin+')';
+if($('endpoint').value&&localStorage.getItem(storageKey($('endpoint').value)))reconnect();
+</script></body></html>
