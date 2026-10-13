@@ -165,6 +165,14 @@ assert.equal(run('exploreSystem(1)'),true,'Owned surveyed planet can be explored
 for(let i=0;i<11;i++)run('stepSimulation(3)');
 assert.equal(run('game.systems[1].explored'),true,'Expedition completes and explores surface');
 assert.equal(run('exploreSystem(1)'),false,'Expedition reward cannot be repeated');
+run('game=initial();game.systems[1].owner="player";game.systems[1].explored=true;game.systems[1].anomalyPending=true;');
+assert.equal(run('resolveAnomaly(1,0)'),true,'Anomaly salvage option succeeds');
+assert.equal(run('game.systems[1].anomalyResolved'),true,'Anomaly resolution persists');
+assert.equal(run('resolveAnomaly(1,1)'),false,'Anomaly cannot be collected twice');
+run('game.systems[2].owner="player";game.systems[2].explored=true;game.systems[2].anomalyPending=true;');
+const beforeResearch=run('game.research');
+assert.equal(run('resolveAnomaly(2,1)'),true,'Anomaly scientific option succeeds');
+assert.ok(run('game.research')>beforeResearch,'Scientific choice rewards research');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
