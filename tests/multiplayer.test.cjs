@@ -101,6 +101,25 @@ test('client source has live updates, authenticated commands and no turn button'
  assert.match(html,/api\/events/);assert.match(html,/api\/command/);
  assert.match(html,/Authorization/);assert.doesNotMatch(html,/End Turn/);
 });
+test('title scene and planetary construction UI expose all building districts and queue progress',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
+ assert.match(html,/id="titleScreen"/);
+ assert.match(html,/id="titlePlay"/);
+ assert.match(html,/id="titleContinue"/);
+ assert.match(html,/id="planetScreen"/);
+ assert.match(html,/id="planetSlots"/);
+ assert.match(html,/id="planetCatalog"/);
+ assert.match(html,/id="planetJobs"/);
+ assert.match(html,/function openPlanet\(/);
+ assert.match(html,/function renderPlanet\(/);
+ assert.match(html,/role','progressbar'/);
+ for(const type of ['mine','reactor','farm','shipyard','extractor','foundry','laboratory','tradeHub','fortress','refinery']){
+  assert.match(html,new RegExp("type:'"+type+"'"),type+' district is listed');
+ }
+ const script=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.ok(script,'client script exists');
+ assert.doesNotThrow(()=>new Function(script[1]),'client script compiles');
+});
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
  const file=path.join(dir,'galaxy.json');
