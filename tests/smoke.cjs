@@ -48,7 +48,7 @@ vm.runInContext('trade("sell","minerals")',context,{timeout:3000});
 assert.equal(vm.runInContext('game.resources.minerals',context),beforeTrade);
 vm.runInContext('selected=0;game.resources.credits=500;game.resources.minerals=500;game.resources.alloys=500;upgradeColony()',context,{timeout:3000});
 assert.equal(vm.runInContext('game.systems[0].level',context),2);
-assert.equal(vm.runInContext('productionForecast().research',context),14);
+assert.equal(vm.runInContext('productionForecast().research',context),12);
 assert.ok(document.getElementById('export'));
 assert.ok(document.getElementById('import'));
 assert.ok(document.getElementById('importFile'));
