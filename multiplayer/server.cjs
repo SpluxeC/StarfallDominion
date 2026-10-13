@@ -87,6 +87,28 @@ function createServer(options={}){
     return reply(res,201,{token,empireId:id,galaxy:rules.snapshot(galaxy,id)});
    }
    const id=authenticate(req);if(!id)return reply(res,401,{error:'Missing or invalid player token'});
+   // Server-authoritative public rankings; never accept client-submitted scores.
+   function standings(){
+    return Object.values(galaxy.empires).map(empire=>{
+     const colonies=galaxy.systems.filter(system=>system.owner===empire.id);
+     const ships=colonies.reduce((n,system)=>n+(Number(system.ships)||0),0);
+     const technology=Array.isArray(empire.techs)?empire.techs.length:0;
+     const score=colonies.length*100+ships*12+technology*90+Math.max(0,Math.floor(Number(empire.reputation)||0))*5;
+     return {id:empire.id,name:empire.name,colonies:colonies.length,ships,technology,score};
+    }).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((entry,i)=>({...entry,rank:i+1}));
+   }
+   if(req.method==='GET'&&url.pathname==='/api/leaderboard')return reply(res,200,{schema:1,scope:'galaxy',updatedAt:Date.now(),leaders:standings()});
+   if(req.method==='GET'&&url.pathname==='/api/profile'){
+    const empire=galaxy.empires[id];return reply(res,200,{schema:1,profile:{id:empire.id,name:empire.name,color:empire.color,createdAt:empire.createdAt},standing:standings().find(x=>x.id===id)});
+   }
+   if(req.method==='POST'&&url.pathname==='/api/profile'){
+    const body=await readJson(req);
+    const name=String(body.name||'').trim();
+    if(!/^[\\p{L}\\p{N} _-]{2,24}$/u.test(name))return reply(res,400,{error:'Commander name must be 2–24 letters or digits'});
+    if(Object.values(galaxy.empires).some(e=>e.id!==id&&e.name.toLowerCase()===name.toLowerCase()))return reply(res,409,{error:'Commander name already in use'});
+    galaxy.empires[id].name=name;dirty=true;persist();broadcast();
+    return reply(res,200,{schema:1,profile:{id,name,color:galaxy.empires[id].color}});
+   }
    if(req.method==='GET'&&url.pathname==='/api/state')return reply(res,200,rules.snapshot(galaxy,id));
    if(req.method==='GET'&&url.pathname==='/api/events'){
     let ownStreams=0;for(const value of streams.values())if(value===id)ownStreams++;
