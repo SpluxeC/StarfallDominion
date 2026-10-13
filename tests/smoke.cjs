@@ -189,4 +189,33 @@ assert.ok(html.includes('Place '),'Planetary inspector offers structure placemen
 assert.ok(html.includes('BUILDING'),'Construction sites show live building status');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
+
+run('game=initial();selected=0;game.systems[4].ships=5;game.systems[4].troops=0;game.systems[4].fortress=1;');
+run('resolveArrival({owner:"player",ships:12,troops:0,path:[0,4],step:0,order:"attack"},4)');
+assert.equal(run('game.engagements.length'),1,'Hostile fleet arrival starts a timed battle');
+assert.equal(run('game.systems[4].owner'),'ai','A planet is not captured immediately');
+run('stepSimulation(1)');
+assert.ok(run('game.engagements[0].elapsed')>0,'Combat advances in real time');
+run('game.systems[4].ships+=5;resolveArrival({owner:"ai",ships:4,troops:0,path:[4,4],step:0},4)');
+assert.ok(run('game.engagements[0].defendHP')>50,'Friendly reinforcements strengthen an ongoing defense');
+run('game.ceasefireEndsAt=game.elapsedSeconds+30;const held=game.engagements[0].elapsed;stepSimulation(2)');
+assert.equal(run('game.engagements[0].elapsed'),run('held'),'Ceasefire freezes existing battles');
+run('game.ceasefireEndsAt=0;game.engagements[0].attackHP=500;game.engagements[0].attackShips=50;game.engagements[0].defendHP=1;');
+run('stepSimulation(2)');
+assert.equal(run('game.engagements.length'),0,'Completed battles are cleared');
+assert.equal(run('game.systems[4].owner'),'ai','A successful space attack without troops can lose its invasion');
+assert.ok(run('game.battleReports.length')>0,'Combat creates a battle report');
+run('game=initial();game.systems[4].troops=0;game.systems[4].ships=1;');
+run('resolveArrival({owner:"player",ships:40,troops:30,path:[0,4],step:0,order:"attack"},4)');
+run('game.engagements[0].defendHP=1;stepSimulation(1)');
+assert.equal(run('game.systems[4].owner'),'player','Troop-supported assaults capture planets');
+assert.equal(run('game.engagements.length'),0,'Successful invasions end engagements');
+run('const oldBattleSave=initial();delete oldBattleSave.engagements;delete oldBattleSave.battleReports;normalizeGame(oldBattleSave)');
+assert.equal(run('oldBattleSave.engagements.length'),0,'Pre-6.3 saves migrate active battles');
+assert.equal(run('oldBattleSave.battleReports.length'),0,'Pre-6.3 saves migrate battle reports');
+run('game=initial();game.engagements.push({dest:4,owner:"player",origin:0,attackHP:30,defendHP:20});normalizeGame(game)');
+assert.equal(run('game.engagements[0].attackShips'),3,'Restored battles recover derived ship counts');
+assert.ok(html.includes('district-progress-slot'),'Building progress bars remain attached to building buttons');
+assert.ok(html.includes('battle-pulse'),'Galaxy combat effects are present');
+
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
