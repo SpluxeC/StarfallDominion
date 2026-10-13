@@ -54,35 +54,76 @@ function route(from,to,r=3.065){
  globe.add(line);
 }
 function buildDistrict(group,type,level,queued){
- const color=buildingColor(type),base=lit(0x213b58),trim=lit(color,{emissive:color,emissiveIntensity:.21});
- const H=.12+Math.min(8,level)*.09,W=.29;
- const pad=mesh(new THREE.CylinderGeometry(.3,.33,.055,8),lit(0x567c98),group);
- pad.position.y=.015;
- const geom=(type==='farm'||type==='reactor')?new THREE.CylinderGeometry(.18,.23,H,9):
-             (type==='fortress')?new THREE.CylinderGeometry(.22,.29,H,6):
-             new THREE.BoxGeometry(W,H,W);
- const tower=mesh(geom,base,group);tower.position.y=H/2+.06;
- const roof=mesh(type==='reactor'?new THREE.SphereGeometry(.15,12,8):
-                 type==='laboratory'?new THREE.SphereGeometry(.13,12,8):
-                 type==='farm'?new THREE.SphereGeometry(.21,16,9):
-                 new THREE.CylinderGeometry(.12,.17,.075,8),trim,group);
- roof.position.y=H+.11;
- if(type==='shipyard'||type==='fortress'){
-  for(let j=-1;j<=1;j+=2){const wing=mesh(new THREE.BoxGeometry(.12,H*.7,.13),trim,group);wing.position.set(j*.2,H*.39,.0);}
+ const accent=buildingColor(type),steel=lit(0x3c4858,{metalness:.82,roughness:.36}),dark=lit(0x182735,{metalness:.78}),armor=lit(0x70849a,{metalness:.75}),glow=lit(accent,{metalness:.38,emissive:accent,emissiveIntensity:.48}),glass=lit(0x6fc7dd,{metalness:.3,transparent:true,opacity:.72});
+ const H=.20+Math.min(6,level)*.065;
+ const part=(geo,mat,x,y,z)=>{const m=mesh(geo,mat,group);m.position.set(x,y,z);return m;};
+ const box=(w,h,d,x,y,z,mat=steel)=>part(new THREE.BoxGeometry(w,h,d),mat,x,y,z);
+ const cyl=(r1,r2,h,x,y,z,mat=steel,n=10)=>part(new THREE.CylinderGeometry(r1,r2,h,n),mat,x,y,z);
+ cyl(.32,.35,.055,0,.018,0,dark,12);
+ cyl(.29,.30,.018,0,.052,0,armor,12);
+ // Service conduits, bolted corners and hazard-strip illumination.
+ for(const side of [-1,1]){
+  box(.035,.035,.49,side*.245,.08,0,glow);
+  box(.045,.12,.055,side*.22,.12,-.22,armor);
+  box(.045,.12,.055,side*.22,.12,.22,armor);
+ }
+ if(type==='mine'||type==='extractor'){
+  box(.32,H*.62,.30,0,.11+H*.31,0);
+  for(const side of [-1,1]){
+   const arm=box(.07,H*.95,.08,side*.19,.13+H*.45,0,armor);arm.rotation.z=side*.38;
+   cyl(.07,.09,.10,side*.23,.11,.13,dark);
+  }
+  const drill=cyl(.065,.10,.28,0,.13,-.22,glow);drill.rotation.x=Math.PI/2;
+  for(let j=0;j<3;j++)box(.23,.028,.035,0,.14+j*.08,.17,armor);
+ }else if(type==='reactor'||type==='foundry'||type==='refinery'){
+  for(const side of [-1,1]){
+   cyl(.09,.12,H*.85,side*.16,.12+H*.43,0,steel);
+   cyl(.095,.095,.035,side*.16,.14+H*.85,0,glow);
+   const pipe=cyl(.023,.023,.32,side*.23,.14,.04,armor);pipe.rotation.z=.45;
+  }
+  box(.26,H*.7,.24,0,.11+H*.35,0,dark);
+  for(let j=0;j<3;j++)box(.25,.025,.045,0,.15+j*.065,.14,glow);
+  if(type==='foundry')cyl(.10,.13,.11,0,.12,-.20,lit(0xd97034,{emissive:0xff4a13,emissiveIntensity:.6}));
+ }else if(type==='farm'||type==='laboratory'){
+  for(const side of [-1,1]){
+   const dome=part(new THREE.SphereGeometry(.17,16,10,0,Math.PI*2,0,Math.PI/2),glass,side*.16,.09,0);
+   dome.scale.set(1,.8,1);
+   for(let j=0;j<4;j++){const rib=box(.016,.12,.02,side*.16+(j-1.5)*.065,.15,0,armor);rib.rotation.z=(j-1.5)*.19;}
+  }
+  if(type==='laboratory'){
+   cyl(.07,.10,H*.8,0,.12+H*.4,-.14,steel);
+   const dish=cyl(.14,.035,.055,0,.19+H*.8,-.14,glow);dish.rotation.z=.3;
+  }
+ }else if(type==='shipyard'){
+  box(.48,.07,.31,0,.12,0,dark);
+  for(const side of [-1,1]){
+   box(.065,H,.09,side*.23,.12+H*.5,0,armor);
+   box(.07,.045,.39,side*.23,.16+H,0,steel);
+  }
+  box(.28,.045,.08,0,.19+H,-.07,glow);
+  const hull=box(.23,.065,.11,0,.18,.03,glass);hull.rotation.y=.12;
+ }else if(type==='fortress'){
+  cyl(.17,.23,H,0,.12+H*.5,0,armor,8);
+  cyl(.21,.18,.07,0,.17+H,0,dark,8);
+  for(const side of [-1,1]){
+   const barrel=cyl(.035,.04,.24,side*.075,.19+H,-.15,steel);barrel.rotation.x=Math.PI/2;
+  }
+  cyl(.07,.07,.035,0,.22+H,0,glow);
+ }else{
+  box(.32,H,.31,0,.12+H*.5,0,steel);
+  for(let j=0;j<3;j++)box(.25,.032,.018,0,.18+j*H*.23,.164,glow);
+  cyl(.12,.17,.07,0,.17+H,0,armor);
+  for(const side of [-1,1])cyl(.045,.06,H*.8,side*.22,.12+H*.4,0,dark);
  }
  if(level>=2){
   for(let j=0;j<Math.min(level,5);j++){
-   const fin=mesh(new THREE.BoxGeometry(.07,.10,.06),trim,group);
-   fin.position.set((j%2?1:-1)*.16,.1+j*.10,.18);
+   box(.045,.11,.045,-.20+j*.10,.19+H,0,armor);
+   box(.032,.018,.03,-.20+j*.10,.25+H,0,glow);
   }
  }
- if(type==='farm'){
-  const dome=mesh(new THREE.SphereGeometry(.19,12,8,0,Math.PI*2,0,Math.PI/2),lit(0x54db9d,{transparent:true,opacity:.53}),group);
-  dome.position.y=.10;
- }
  if(queued){
-  const ring=mesh(new THREE.TorusGeometry(.35,.02,5,32),lit(0xffcc77,{emissive:0xffaa55,emissiveIntensity:.6}),group);
-  ring.rotation.x=Math.PI/2;ring.position.y=.05;ring.userData.construction=true;targets.push(ring);
+  const ring=mesh(new THREE.TorusGeometry(.36,.023,6,36),lit(0xffc46e,{emissive:0xff9c3b,emissiveIntensity:.8}),group);
+  ring.rotation.x=Math.PI/2;ring.position.y=.08;ring.userData.construction=true;targets.push(ring);
  }
 }
 function buildGlobe(state){
