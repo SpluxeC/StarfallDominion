@@ -19,11 +19,11 @@ function createServer(options={}){
  const invite=options.invite===undefined?(process.env.STARFALL_INVITE_CODE||''):options.invite;
  const tickMs=options.tickMs||1000;
  const origins=(process.env.ALLOWED_ORIGINS||'https://spluxec.github.io').split(',').map(x=>x.trim());
- let galaxy=rules.newGalaxy(),sessions={},savedWall=Date.now(),clock=Date.now(),dirty=false;
+ let galaxy=rules.newGalaxy(),sessions={},recovery={},savedWall=Date.now(),clock=Date.now(),dirty=false;const galaxyId=String(options.galaxyId||process.env.STARFALL_GALAXY_ID||'primary').slice(0,48);const globalFile=options.globalFile===undefined?(process.env.STARFALL_GLOBAL_RANKINGS_PATH||''):options.globalFile;
  if(file&&fs.existsSync(file)){
   const loaded=JSON.parse(fs.readFileSync(file,'utf8'));
   if(!loaded||!loaded.galaxy||!loaded.sessions||!Array.isArray(loaded.galaxy.systems)||loaded.galaxy.systems.length!==rules.NAMES.length)throw Error('Invalid galaxy persistence file');
-  galaxy=loaded.galaxy;sessions=loaded.sessions;savedWall=Number(loaded.savedWall)||Date.now();clock=Date.now();
+  galaxy=loaded.galaxy;sessions=loaded.sessions;recovery=loaded.recovery||{};savedWall=Number(loaded.savedWall)||Date.now();clock=Date.now();
   const downtime=Math.max(0,Math.min(3600,(clock-savedWall)/1000));
   for(let t=0;t<downtime;t+=5)rules.tick(galaxy,Math.min(5,downtime-t));
   dirty=true;
@@ -33,7 +33,7 @@ function createServer(options={}){
   if(!file)return;
   fs.mkdirSync(path.dirname(file),{recursive:true});
   const tmp=file+'.'+process.pid+'.tmp';
-  fs.writeFileSync(tmp,JSON.stringify({galaxy,sessions,savedWall:Date.now()}),{mode:0o600});
+  fs.writeFileSync(tmp,JSON.stringify({galaxy,sessions,recovery,savedWall:Date.now()}),{mode:0o600});
   fs.renameSync(tmp,file);dirty=false;
  }
  function allowed(origin,req){if(!origin)return true;if(origins.includes(origin))return true;
@@ -78,13 +78,23 @@ function createServer(options={}){
     return res.end(js);
    }
    if(req.method==='GET'&&url.pathname==='/api/health')return reply(res,200,{ok:true,simulation:'realtime',galaxyTime:Math.floor(galaxy.time),players:Object.keys(galaxy.empires).length,capacity:4});
+   if(req.method==='POST'&&url.pathname==='/api/recover'){
+    const body=await readJson(req);const code=String(body.recoveryCode||'').trim().toLowerCase();
+    if(!/^[a-f0-9]{64}$/.test(code))return reply(res,400,{error:'Invalid recovery code'});
+    const key=hash(code),id=recovery[key];if(!id||!galaxy.empires[id])return reply(res,401,{error:'Recovery code not recognized'});
+    // One-time code: invalidate previous login tokens and issue new credentials.
+    for(const [sessionHash,owner] of Object.entries(sessions))if(owner===id)delete sessions[sessionHash];
+    delete recovery[key];const token=crypto.randomBytes(32).toString('hex'),nextCode=crypto.randomBytes(32).toString('hex');
+    sessions[hash(token)]=id;recovery[hash(nextCode)]=id;dirty=true;persist();
+    return reply(res,200,{token,recoveryCode:nextCode,empireId:id,galaxy:rules.snapshot(galaxy,id)});
+   }
    if(req.method==='POST'&&url.pathname==='/api/join'){
     const body=await readJson(req);if(invite&&body.invite!==invite)return reply(res,403,{error:'Invalid invitation code'});
     const name=String(body.name||'').trim().slice(0,24);
     if(!/^[\p{L}\p{N} _-]{2,24}$/u.test(name))return reply(res,400,{error:'Commander name must be 2–24 letters or digits'});
-    const token=crypto.randomBytes(32).toString('hex'),id=crypto.randomBytes(8).toString('hex');
-    rules.addEmpire(galaxy,id,name);sessions[hash(token)]=id;dirty=true;persist();broadcast();
-    return reply(res,201,{token,empireId:id,galaxy:rules.snapshot(galaxy,id)});
+    const token=crypto.randomBytes(32).toString('hex'),recoveryCode=crypto.randomBytes(32).toString('hex'),id=crypto.randomBytes(8).toString('hex');
+    rules.addEmpire(galaxy,id,name);sessions[hash(token)]=id;recovery[hash(recoveryCode)]=id;dirty=true;persist();broadcast();
+    return reply(res,201,{token,recoveryCode,empireId:id,galaxy:rules.snapshot(galaxy,id)});
    }
    const id=authenticate(req);if(!id)return reply(res,401,{error:'Missing or invalid player token'});
    // Server-authoritative public rankings; never accept client-submitted scores.
@@ -96,6 +106,18 @@ function createServer(options={}){
      const score=colonies.length*100+ships*12+technology*90+Math.max(0,Math.floor(Number(empire.reputation)||0))*5;
      return {id:empire.id,name:empire.name,colonies:colonies.length,ships,technology,score};
     }).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).map((entry,i)=>({...entry,rank:i+1}));
+   }
+   if(req.method==='GET'&&url.pathname==='/api/global-leaderboard'){
+    if(!globalFile)return reply(res,503,{error:'Global ranking storage is not configured on this server'});
+    // Shared durable JSON registry for multiple galaxy instances on one trusted host.
+    // Only server-owned ranking snapshots are accepted; no public score upload endpoint.
+    let registry={schema:1,galaxies:{}};if(fs.existsSync(globalFile))registry=JSON.parse(fs.readFileSync(globalFile,'utf8'));
+    if(!registry.galaxies||typeof registry.galaxies!=='object')registry={schema:1,galaxies:{}};
+    registry.galaxies[galaxyId]={updatedAt:Date.now(),leaders:standings()};
+    fs.mkdirSync(path.dirname(globalFile),{recursive:true});
+    const tmp=globalFile+'.'+process.pid+'.tmp';fs.writeFileSync(tmp,JSON.stringify(registry),{mode:0o600});fs.renameSync(tmp,globalFile);
+    const leaders=Object.entries(registry.galaxies).flatMap(([source,record])=>(record.leaders||[]).map(e=>({...e,galaxyId:source}))).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name)).slice(0,100).map((e,i)=>({...e,rank:i+1}));
+    return reply(res,200,{schema:1,scope:'global',galaxies:Object.keys(registry.galaxies).length,leaders});
    }
    if(req.method==='GET'&&url.pathname==='/api/leaderboard')return reply(res,200,{schema:1,scope:'galaxy',updatedAt:Date.now(),leaders:standings()});
    if(req.method==='GET'&&url.pathname==='/api/profile'){
