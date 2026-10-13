@@ -120,6 +120,19 @@ test('title scene and planetary construction UI expose all building districts an
  assert.ok(script,'client script exists');
  assert.doesNotThrow(()=>new Function(script[1]),'client script compiles');
 });
+test('colony skyline visualizes real buildings, build orders, and reduced-motion accessibility',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
+ assert.match(html,/id="colonyScene"/);
+ assert.match(html,/function renderColonyScene\(s\)/);
+ assert.match(html,/renderColonyScene\(s\);/);
+ assert.match(html,/const owned=s\.buildings\|\|\{\}/);
+ assert.match(html,/const count=owned\[d\.type\]\|\|0/);
+ assert.match(html,/const jobs=galaxy\.jobs\.filter\(j=>j\.system===s\.id\)/);
+ assert.match(html,/prefers-reduced-motion:reduce/);
+ assert.match(html,/active-construction/);
+ const script=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.doesNotThrow(()=>new Function(script[1]));
+});
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
  const file=path.join(dir,'galaxy.json');
