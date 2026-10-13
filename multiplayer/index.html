@@ -60,6 +60,24 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 @media(max-width:850px){.planet-layout{grid-template-columns:1fr}.planet-slots{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:470px){.planet-slots{grid-template-columns:1fr 1fr}.planet-slot{min-height:137px;padding:10px}.planet-disc{left:2%;width:170px;height:170px}.planet-vista-copy{right:5%}}
 
+
+/* Procedural colony skyline: actual structures follow server-owned building levels. */
+.planet-vista{min-height:340px;isolation:isolate}
+.planet-disc{width:260px;height:260px;left:5%;top:1%;animation:planetBreath 16s ease-in-out infinite alternate}
+.planet-vista-copy{z-index:3;top:8%;right:4%}
+#colonyScene{position:absolute;inset:0;width:100%;height:100%;z-index:2;overflow:visible;pointer-events:none}
+#colonyScene .structure{transition:opacity .5s ease,transform .5s ease;transform-box:fill-box;transform-origin:center bottom}
+#colonyScene .active-construction{animation:constructionPulse 1.6s ease-in-out infinite alternate}
+#colonyScene .beacon{animation:beaconFlash 2s ease-in-out infinite}
+#colonyScene .energy-core{animation:beaconFlash 3s ease-in-out infinite}
+#colonyScene .city-light{animation:beaconFlash 4s ease-in-out infinite}
+#colonyScene .scan-ring{animation:scanPulse 5s ease-in-out infinite;transform-origin:center;transform-box:fill-box}
+.colony-legend{position:absolute;bottom:10px;right:12px;z-index:3;padding:7px 10px;border-radius:8px;background:#07132cdb;border:1px solid #6185a67a;font-size:.72rem;color:#c9eaff;max-width:45%}
+@keyframes planetBreath{to{filter:brightness(1.13) hue-rotate(12deg)}}
+@keyframes constructionPulse{to{opacity:.35;filter:drop-shadow(0 0 12px #ffe7a3)}}
+@keyframes beaconFlash{50%{opacity:.25}}
+@keyframes scanPulse{50%{opacity:.35;transform:scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.planet-disc,#colonyScene *{animation:none!important;transition:none!important}}
 </style></head>
 <body>
 <section id="titleScreen" aria-label="Starfall Dominion title screen">
@@ -76,7 +94,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 <section id="planetScreen" class="hidden" aria-label="Planetary construction screen" role="dialog" aria-modal="true">
  <div class="planet-wrap">
   <div class="planet-top"><div><div class="title-kicker">COLONY COMMAND</div><h2 id="planetTitle">Planetary Construction</h2></div><div class="actions"><button id="planetBack">← Return to Galaxy</button><button id="planetTitleBtn">Main Menu</button></div></div>
-  <div class="planet-vista"><div class="planet-disc" aria-hidden="true"></div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
+  <div class="planet-vista"><div class="planet-disc" aria-hidden="true"></div><svg id="colonyScene" viewBox="0 0 1000 350" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Colony skyline with constructed buildings"></svg><div class="colony-legend" id="colonyLegend">No developed districts yet</div><div class="planet-vista-copy"><strong id="planetVistaName">Colony</strong><span id="planetVistaDescription">Planetary development</span></div></div>
   <div class="planet-statbar" id="planetStats"></div>
   <div class="planet-layout">
    <div class="stack">
@@ -240,11 +258,48 @@ function openPlanet(id){
 }
 function closePlanet(){planetSystem=null;screen='galaxy';$('planetScreen').classList.add('hidden');}
 function showTitle(){if(screen==='planet')closePlanet();screen='title';$('titleScreen').classList.remove('hidden');}
+function renderColonyScene(s){
+ const svg=$('colonyScene');
+ const owned=s.buildings||{},jobs=galaxy.jobs.filter(j=>j.system===s.id),types=DISTRICTS.filter(d=>(owned[d.type]||0)>0||jobs.some(j=>j.type===d.type));
+ const terrain=s.deposit==='gas'?'#28465e':s.deposit==='titanium'?'#454d6b':s.deposit==='crystals'?'#334f70':'#365c67';
+ let art='<defs><linearGradient id="groundGlow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+terrain+'"/><stop offset="1" stop-color="#071020"/></linearGradient><linearGradient id="towerMetal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#668cae"/><stop offset=".45" stop-color="#263c5c"/><stop offset="1" stop-color="#101b34"/></linearGradient></defs>';
+ art+='<path d="M0 260 Q160 225 290 256 T600 249 T1000 260 V350 H0Z" fill="url(#groundGlow)"/>';
+ art+='<path d="M0 288 Q240 265 440 290 T1000 285" fill="none" stroke="#65b3cd" stroke-width="2" opacity=".35"/>';
+ // Each constructed building has its own recognizable silhouette. The silhouette grows with level.
+ const shape=(type,x,y,w,height,level,underConstruction)=>{
+  const H=height+Math.min(4,level-1)*11,Y=y-H,extra=level>1?'<path d="M'+(x+8)+' '+(Y+22)+' H'+(x+w-8)+' M'+(x+8)+' '+(Y+38)+' H'+(x+w-8)+'" stroke="#79b7d8" stroke-width="2" opacity=".6"/>':'';
+  let body='';
+  if(type==='mine')body='<path d="M'+x+' '+y+' L'+(x+12)+' '+(Y+24)+' L'+(x+w-12)+' '+(Y+24)+' L'+(x+w)+' '+y+'Z" fill="url(#towerMetal)"/><path d="M'+(x+12)+' '+(Y+24)+' H'+(x+w-12)+'" stroke="#d5b479" stroke-width="7"/>';
+  else if(type==='reactor')body='<rect x="'+x+'" y="'+(Y+22)+'" width="'+w+'" height="'+(H-22)+'" rx="8" fill="url(#towerMetal)"/><circle class="energy-core" cx="'+(x+w/2)+'" cy="'+(Y+H/2)+'" r="17" fill="#54e8fc"/><circle cx="'+(x+w/2)+'" cy="'+(Y+H/2)+'" r="25" fill="none" stroke="#7af4ff" stroke-width="4"/>';
+  else if(type==='farm')body='<path d="M'+x+' '+y+' V'+(Y+32)+' Q'+(x+w/2)+' '+(Y-22)+' '+(x+w)+' '+(Y+32)+' V'+y+'Z" fill="#2a756e" stroke="#80d7b2" stroke-width="4"/><path d="M'+(x+15)+' '+(Y+26)+' V'+(y-5)+' M'+(x+w-15)+' '+(Y+26)+' V'+(y-5)+'" stroke="#a4f7cf" opacity=".6"/>';
+  else if(type==='shipyard')body='<rect x="'+x+'" y="'+(Y+30)+'" width="'+w+'" height="'+(H-30)+'" fill="url(#towerMetal)"/><path d="M'+(x+5)+' '+(Y+30)+' V'+Y+' H'+(x+w-5)+' V'+(Y+30)+' M'+(x+w/2)+' '+Y+' V'+(Y-15)+'" stroke="#9ccfe4" stroke-width="6" fill="none"/><rect x="'+(x+w/2-12)+'" y="'+(Y+44)+'" width="24" height="10" fill="#72f2ff"/>';
+  else if(type==='extractor'||type==='refinery')body='<rect x="'+x+'" y="'+(Y+35)+'" width="'+w+'" height="'+(H-35)+'" rx="7" fill="url(#towerMetal)"/><rect x="'+(x+8)+'" y="'+Y+'" width="13" height="'+(H-12)+'" fill="#6c8ca2"/><rect x="'+(x+w-21)+'" y="'+(Y+12)+'" width="13" height="'+(H-24)+'" fill="#6c8ca2"/><circle cx="'+(x+w/2)+'" cy="'+(y-20)+'" r="12" fill="'+(type==='refinery'?'#ffb56d':'#7be3c6')+'"/>';
+  else if(type==='fortress')body='<path d="M'+x+' '+y+' V'+(Y+32)+' L'+(x+12)+' '+(Y+32)+' V'+Y+' H'+(x+28)+' V'+(Y+32)+' H'+(x+w-28)+' V'+Y+' H'+(x+w-12)+' V'+(Y+32)+' H'+(x+w)+' V'+y+'Z" fill="url(#towerMetal)" stroke="#89aac7" stroke-width="3"/><path d="M'+(x+w/2)+' '+(Y+14)+' V'+(Y-14)+'" stroke="#b2ecfa" stroke-width="5"/>';
+  else if(type==='laboratory')body='<rect x="'+(x+12)+'" y="'+(Y+26)+'" width="'+(w-24)+'" height="'+(H-26)+'" fill="url(#towerMetal)"/><circle class="scan-ring" cx="'+(x+w/2)+'" cy="'+(Y+15)+'" r="25" stroke="#b7a7ff" stroke-width="5" fill="none"/><circle cx="'+(x+w/2)+'" cy="'+(Y+15)+'" r="6" fill="#e0c9ff"/>';
+  else if(type==='tradeHub')body='<rect x="'+x+'" y="'+(Y+20)+'" width="'+w+'" height="'+(H-20)+'" fill="url(#towerMetal)"/><path d="M'+x+' '+(Y+20)+' L'+(x+w/2)+' '+Y+' L'+(x+w)+' '+(Y+20)+'Z" fill="#83b6ca"/><path d="M'+(x+16)+' '+(Y+36)+' V'+(y-12)+' M'+(x+w-16)+' '+(Y+36)+' V'+(y-12)+'" stroke="#ffe0a0" stroke-width="5"/>';
+  else body='<rect x="'+x+'" y="'+Y+'" width="'+w+'" height="'+H+'" fill="url(#towerMetal)"/><path d="M'+(x+w/2)+' '+Y+' V'+(Y-16)+'" stroke="#95d9ff" stroke-width="4"/>';
+  const lights=Array.from({length:Math.min(level+1,5)},(_,i)=>'<rect class="city-light" x="'+(x+13+i*9)+'" y="'+(y-16)+'" width="5" height="5" fill="#8ef5f7"/>').join('');
+  return '<g class="structure '+(underConstruction?'active-construction':'')+'">'+body+extra+lights+'<circle class="beacon" cx="'+(x+w/2)+'" cy="'+(Y-4)+'" r="3" fill="#ffcf78"/></g>';
+ };
+ const built=types.slice(0,10);
+ built.forEach((d,i)=>{
+  const count=owned[d.type]||0,queued=jobs.some(j=>j.type===d.type),w=68,x=35+i*95,y=285+(i%3)*8;
+  art+=shape(d.type,x,y,w,58+(i%3)*13,count||1,queued&&count===0);
+  if(queued)art+='<path d="M'+(x-5)+' '+(y+4)+' V'+(y-112)+' H'+(x+w+5)+' V'+(y+4)+'" stroke="#fbd27a" stroke-width="2" stroke-dasharray="6 6" fill="none" opacity=".8"/>';
+ });
+ if(!built.length)art+='<g opacity=".8"><path d="M420 285 L440 245 H515 L535 285Z" fill="#3c5975"/><path d="M450 245 V222 H505 V245" stroke="#83b8cf" stroke-width="5" fill="none"/><circle cx="478" cy="240" r="7" fill="#73e7ed"/></g>';
+ art+='<path d="M0 311 Q270 295 490 315 T1000 304 V350 H0Z" fill="#081426" opacity=".78"/>';
+ svg.innerHTML=art;
+ svg.setAttribute('aria-label',s.name+' colony skyline, '+types.length+' developed or active districts, colony level '+s.level);
+ $('colonyLegend').textContent=types.length+' active districts · '+jobs.length+' construction orders';
+}
+
 function renderPlanet(){
  if(screen!=='planet'||!galaxy)return;
  const s=galaxy.systems[planetSystem];if(!s||!own(s)){closePlanet();message('Colony no longer controlled by your empire.',true);return;}
  $('planetTitle').textContent=s.name+' — Colony Command';$('planetVistaName').textContent=s.name;
  $('planetVistaDescription').textContent='Level '+s.level+' · '+s.deposit+' deposit · '+s.ships+' stationed ships';
+ renderColonyScene(s);
  const stats=$('planetStats');stats.replaceChildren();
  for(const [name,value] of [['Colony level',s.level],['Active jobs',galaxy.jobs.filter(j=>j.system===s.id).length+'/4'],['Ships',s.ships],['Deposit',s.deposit]])stats.append(badge(name+': '+value));
  const slots=$('planetSlots');slots.replaceChildren();
