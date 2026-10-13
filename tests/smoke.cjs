@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const html=fs.readFileSync('index.html','utf8');
-const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)?.[1];
 assert.ok(script,'Inline game script exists');
 assert.ok(!html.includes('id="next"'),'Old End Turn button is removed');
 assert.ok(html.includes('id="pause"')&&html.includes('id="speed"'),'RTS controls exist');
@@ -11,16 +11,16 @@ assert.ok(html.includes('id="pause"')&&html.includes('id="speed"'),'RTS controls
 const elements=new Map();
 function element(){return {
  textContent:'',innerHTML:'',style:{},className:'',value:'',attributes:{},children:[],
- classList:{add(){}},
+ classList:{add(){},remove(){},toggle(){},contains(){return false;}},
  setAttribute(k,v){this.attributes[k]=v;},
- appendChild(c){this.children.push(c);return c;},
+ appendChild(c){this.children.push(c);return c;},append(...items){this.children.push(...items);},contains(){return false;},
  replaceChildren(...children){this.children=children;},
  addEventListener(name,fn){this['on'+name]=fn;}
 };}
 const document={
  activeElement:null,
  getElementById(id){if(!elements.has(id))elements.set(id,element());return elements.get(id);},
- createElement:element,createElementNS:element
+ createElement:element,createElementNS:element,querySelector(){return null;},querySelectorAll(){return [];}
 };
 const store=new Map();let timer;
 const context={
@@ -28,7 +28,7 @@ const context={
  localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
  confirm:()=>true,alert:()=>{},
  setInterval:fn=>{timer=fn;return 1;},
- window:{addEventListener(){}},
+ window:{addEventListener(){},matchMedia(){return {matches:false}},StarfallPlanet3D:null},
  console
 };
 vm.createContext(context);
