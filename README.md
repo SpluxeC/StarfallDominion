@@ -58,3 +58,8 @@ Live site, if GitHub Pages has been enabled: https://spluxec.github.io/StarfallD
 
 ### Publishing the playable URL
 In GitHub repository Settings → Pages, choose **Deploy from a branch**, **main**, **/(root)**, and Save. The public URL is https://spluxec.github.io/StarfallDominion/ . If the site still shows 404, inspect repository Actions and Pages settings for deployment errors.
+
+## v1.1 and v1.2
+- **v1.1:** Empire dashboard tracking colonies, rival territory, stationed ships, fleets in transit, and battle count.
+- **v1.2:** In-game How to Play guide with onboarding instructions.
+- Both versions retain migration from older browser save keys. The automated smoke test checks new UI elements.
