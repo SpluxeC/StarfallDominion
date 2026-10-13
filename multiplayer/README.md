@@ -74,3 +74,9 @@ npm test
 ```
 
 CI runs local RTS tests, old snapshot-relay tests, and multiplayer HTTP + gameplay integration tests on Node.js 22.
+
+## Publishing the browser client
+
+A GitHub Actions workflow at `.github/workflows/pages.yml` publishes the static game pages. Once the repository owner selects **Settings → Pages → Source: GitHub Actions**, the expected client address is `https://spluxec.github.io/StarfallDominion/multiplayer/`. The server does not run on GitHub Pages. A public URL alone is not proof of successful deployment.
+
+To use the optional Render blueprint, open `render.yaml` in the repository and connect the Render service. The plan uses a paid persistent disk and therefore requires reviewing and agreeing to its hosting charges before deployment. After the server has a real HTTPS origin, enter it in the browser client's server field. The generated invitation code is in the server's environment settings; keep it private.
