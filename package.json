@@ -1,6 +1,6 @@
 {
   "name": "starfall-dominion",
-  "version": "5.6.0-alpha",
+  "version": "5.7.0-alpha",
   "private": true,
   "description": "Starfall Dominion real-time RTS multiplayer prototype",
   "engines": {
