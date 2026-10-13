@@ -24,6 +24,8 @@ jobs:
           mkdir -p public/multiplayer
           cp index.html public/index.html
           cp multiplayer/index.html public/multiplayer/index.html
+          cp multiplayer/planet3d.js public/multiplayer/planet3d.js
+          test -s public/multiplayer/planet3d.js
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload website artifact
