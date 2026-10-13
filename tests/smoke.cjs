@@ -108,7 +108,7 @@ assert.equal(run('game.systems.filter(s=>s.owner==="ai").length'),1,'Normal AI d
 assert.ok(run('game.systems[4].ships')<=30,'AI garrison production is capped');
 assert.ok(html.includes('id="soloTitle"')&&html.includes('id="soloPlanet"'),'Single-player title and planet screens exist');
 assert.ok(html.includes('src="multiplayer/planet3d.js"'),'Single-player shares multiplayer 3D viewer');
-assert.equal(run('SOLO_DISTRICTS.length'),10,'Ten interactive planetary districts exist');
+assert.equal(run('SOLO_DISTRICTS.length'),11,'Eleven interactive planetary districts including outpost exist');
 run('game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000;game.resources.energy=1000;game.resources.crystals=1000;game.resources.gas=1000;selected=0;');
 const beforeFoundry=run('game.systems[0].foundry');
 run('build("foundry")');
@@ -185,7 +185,7 @@ run('const oldAnomaly=initial();delete oldAnomaly.systems[1].anomalyChoice;norma
 assert.equal(run('oldAnomaly.systems[1].anomalyChoice'),null,'Older saves migrate anomaly choice');
 assert.equal(run('formatBuildCost({credits:35,minerals:40,alloys:12})'),'35 credits · 40 minerals · 12 alloys','Building costs show full resource names');
 assert.ok(html.includes('BUILD SITE'),'Planetary plots show build-site status');
-assert.ok(html.includes('Place '),'Planetary inspector offers structure placement');
+assert.ok(html.includes('soloBuildingDescription'),'Planetary construction provides tap-to-inspect descriptions');
 assert.ok(html.includes('BUILDING'),'Construction sites show live building status');
 assert.ok(store.has('starfall-dominion-rts-v42'),'Real-time save key is present');
 assert.ok(html.includes('Shared Galaxy Lab'),'Experimental rooms remain explicitly separate from live multiplayer');
@@ -217,5 +217,23 @@ run('game=initial();game.engagements.push({dest:4,owner:"player",origin:0,attack
 assert.equal(run('game.engagements[0].attackShips'),3,'Restored battles recover derived ship counts');
 assert.ok(html.includes('district-progress-slot'),'Building progress bars remain attached to building buttons');
 assert.ok(html.includes('battle-pulse'),'Galaxy combat effects are present');
+
+
+run('game=initial();selected=0;game.resources.credits=1000;game.resources.minerals=1000;game.resources.alloys=1000;');
+const beforeOutpost=run('productionForecast().credits');
+run('build("outpost")');
+assert.ok(run('game.jobs.some(j=>j.type==="outpost")'),'Outpost can be constructed');
+for(let i=0;i<6;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].outpost'),1,'Outpost construction completes');
+assert.equal(run('productionForecast().credits'),beforeOutpost+4,'Outpost increases credit income');
+run('build("marines");build("armor")');
+assert.ok(run('game.jobs.some(j=>j.type==="marines")'),'Marines are queued in the Fleet training system');
+assert.ok(run('game.jobs.some(j=>j.type==="armor")'),'Armor is queued in the Fleet training system');
+for(let i=0;i<8;i++)run('stepSimulation(3)');
+assert.equal(run('game.systems[0].marines'),3,'Marine training finishes');
+assert.equal(run('game.systems[0].armor'),2,'Armored vehicle training finishes');
+assert.ok(html.includes('bottomResources'),'Bottom HUD contains resource strip');
+assert.ok(html.includes('data-command-tab="settings"'),'Settings has a navigation tab');
+assert.ok(html.includes('militaryTraining'),'Fleet tab contains a dedicated training panel');
 
 console.log('PASS: real-time economy, paused simulation, timed construction, live fleet travel, AI, research, diplomacy, trade, saves and UI');
