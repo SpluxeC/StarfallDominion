@@ -78,6 +78,13 @@ function createServer(options={}){
     return res.end(js);
    }
    if(req.method==='GET'&&url.pathname==='/api/health')return reply(res,200,{ok:true,simulation:'realtime',galaxyTime:Math.floor(galaxy.time),players:Object.keys(galaxy.empires).length,capacity:4});
+   if(req.method==='POST'&&url.pathname==='/api/recovery/enroll'){
+    const id=authenticate(req);if(!id)return reply(res,401,{error:'Missing or invalid player token'});
+    const code=crypto.randomBytes(32).toString('hex');
+    for(const [key,owner] of Object.entries(recovery))if(owner===id)delete recovery[key];
+    recovery[hash(code)]=id;dirty=true;persist();
+    return reply(res,200,{recoveryCode:code,warning:'This replaces any previously issued recovery code. Store it securely.'});
+   }
    if(req.method==='POST'&&url.pathname==='/api/recover'){
     const body=await readJson(req);const code=String(body.recoveryCode||'').trim().toLowerCase();
     if(!/^[a-f0-9]{64}$/.test(code))return reply(res,400,{error:'Invalid recovery code'});
