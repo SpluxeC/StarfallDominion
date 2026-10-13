@@ -147,7 +147,7 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
   </div>
  </div>
 </section>
-<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span><div class="actions"><button id="mpProfile">👤 Profile</button><button id="mpLeaderboard">🏆 Leaderboard</button></div></header>
+<header><div class="brand"><h1>✦ STARFALL DOMINION</h1><span class="flag">MULTIPLAYER RTS LAB</span></div><div class="resources" id="resources"></div><span id="connection" class="status">Server disconnected</span><div class="actions"><button id="mpProfile">👤 Profile</button><button id="mpLeaderboard">🏆 Leaderboard</button><button id="mpGlobalLeaderboard">🌐 Global</button><button id="mpRecovery">🔑 Recovery Code</button></div></header>
 <section id="mpAccountOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="Multiplayer profile and leaderboard"><div class="panel" style="width:min(95vw,580px);max-height:85vh;overflow:auto"><div class="actions" style="justify-content:space-between"><h2 id="mpAccountTitle">Commander</h2><button id="mpAccountClose">← Back</button></div><div id="mpAccountBody"></div></div></section><main class="shell">
 <section id="setup" class="panel">
 <h2>Join the persistent galaxy</h2>
@@ -156,8 +156,8 @@ header{border-bottom:1px solid #47658e80;background:#0c1730e8;padding:15px clamp
 <p class="muted" style="font-size:.79rem">If this page is hosted by the galaxy server, leave the address blank. GitHub Pages requires a separate HTTPS server address.</p>
 <div class="field"><label for="commander">Commander name</label><input id="commander" maxlength="24" placeholder="Your commander name"></div>
 <div class="field"><label for="invite">Invitation code (if required)</label><input id="invite" type="password" placeholder="Given by your host"></div>
-<div class="actions"><button id="join" class="primary">Create my empire</button><button id="reconnect">Reconnect existing empire</button><button id="forget" class="danger">Forget local login</button></div>
-<p id="setupStatus" class="muted" role="status"></p>
+<div class="actions"><button id="join" class="primary">Create my empire</button><button id="reconnect">Reconnect existing empire</button><button id="recoverEmpire">Recover on this device</button><button id="forget" class="danger">Forget local login</button></div>
+<div id="recoverySetup" class="hidden field"><label for="recoveryCodeInput">One-time recovery code</label><input id="recoveryCodeInput" autocomplete="off" spellcheck="false" placeholder="Paste your 64-character recovery code"><button id="submitRecovery">Recover Empire</button></div><p id="setupStatus" class="muted" role="status"></p>
 </section>
 <div id="game" class="grid hidden">
 <section class="stack">
@@ -203,7 +203,7 @@ function showSetup(){screen='login';$('titleScreen').classList.add('hidden');$('
 async function join(){
  try{api=resolveApi();const name=$('commander').value.trim();if(name.length<2)throw Error('Enter a commander name');
  const data=await request('/api/join',{name,invite:$('invite').value},false);
- token=data.token;localStorage.setItem(storageKey(api),token);localStorage.setItem('starfall-mp-server',api);message('Empire created. Welcome to the galaxy.');start(data.galaxy);
+ token=data.token;localStorage.setItem(storageKey(api),token);if(data.recoveryCode){sessionStorage.setItem('starfall-recovery-once',data.recoveryCode);showRecoveryCode(data.recoveryCode);}localStorage.setItem('starfall-mp-server',api);message('Empire created. Welcome to the galaxy.');start(data.galaxy);
  }catch(error){message(error.message,true);}
 }
 async function reconnect(){
@@ -598,22 +598,28 @@ async function connectStream(){
 // The same token used for multiplayer orders authenticates profiles and rankings.
 async function showAccount(kind){
  const overlay=$('mpAccountOverlay'),body=$('mpAccountBody');
- overlay.classList.remove('hidden');$('mpAccountTitle').textContent=kind==='profile'?'👤 Commander Profile':'🏆 Galaxy Leaderboard';
+ overlay.classList.remove('hidden');$('mpAccountTitle').textContent=kind==='profile'?'👤 Commander Profile':kind==='global'?'🌐 Global Rankings':'🏆 Galaxy Leaderboard';
  body.replaceChildren();const status=document.createElement('p');status.textContent='Loading server data…';body.appendChild(status);
  try{
   if(!token)throw Error('Connect to a galaxy server first.');
-  const data=await request(kind==='profile'?'/api/profile':'/api/leaderboard');
+  const data=await request(kind==='profile'?'/api/profile':kind==='global'?'/api/global-leaderboard':'/api/leaderboard');
   body.replaceChildren();
   if(kind==='profile'){
    const info=document.createElement('p');info.textContent='Empire ID: '+data.profile.id+' · Rank: #'+(data.standing?.rank||'—')+' · Score: '+(data.standing?.score||0);body.appendChild(info);
    const input=document.createElement('input');input.maxLength=24;input.value=data.profile.name;input.setAttribute('aria-label','Commander name');input.style.cssText='width:100%;padding:10px;margin:8px 0;background:#102443;color:white;border:1px solid #547ca2;border-radius:7px';body.appendChild(input);
    const save=document.createElement('button');save.textContent='Save Commander Name';save.addEventListener('click',async()=>{try{await request('/api/profile',{name:input.value});showAccount('profile');}catch(e){message(e.message,true);}});body.appendChild(save);
   }else{
-   for(const entry of data.leaders){const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:10px;padding:11px 2px;border-bottom:1px solid #314868';const name=document.createElement('strong');name.textContent='#'+entry.rank+' '+entry.name;const score=document.createElement('span');score.textContent=entry.score+' pts · '+entry.colonies+' colonies';row.append(name,score);body.appendChild(row);}
+   for(const entry of data.leaders){const row=document.createElement('div');row.style.cssText='display:flex;justify-content:space-between;gap:10px;padding:11px 2px;border-bottom:1px solid #314868';const name=document.createElement('strong');name.textContent='#'+entry.rank+' '+entry.name;const score=document.createElement('span');score.textContent=entry.score+' pts · '+entry.colonies+' colonies'+(entry.galaxyId?' · '+entry.galaxyId:'');row.append(name,score);body.appendChild(row);}
    if(!data.leaders.length)body.textContent='No commanders have joined this galaxy yet.';
   }
  }catch(e){status.textContent=e.message;body.replaceChildren(status);}
 }
+
+function showRecoveryCode(code){const overlay=$('mpAccountOverlay'),body=$('mpAccountBody');overlay.classList.remove('hidden');$('mpAccountTitle').textContent='🔑 Save your Recovery Code';body.replaceChildren();const text=document.createElement('p');text.textContent='Store this code securely outside the game. It restores your empire on another device and can be used only once. Anyone with this code can take over your account.';const value=document.createElement('code');value.textContent=code;value.style.cssText='display:block;overflow-wrap:anywhere;padding:12px;background:#102443;margin:12px 0';const copy=document.createElement('button');copy.textContent='Copy Recovery Code';copy.addEventListener('click',()=>navigator.clipboard?.writeText(code));body.append(text,value,copy);}
+$('mpRecovery').addEventListener('click',()=>{const code=sessionStorage.getItem('starfall-recovery-once');if(code)showRecoveryCode(code);else{const overlay=$('mpAccountOverlay'),body=$('mpAccountBody');overlay.classList.remove('hidden');$('mpAccountTitle').textContent='🔑 Recovery Code';body.textContent='Recovery codes are displayed once when an empire is created or recovered. If you did not save yours, this account cannot yet generate a replacement code.';}});
+$('mpGlobalLeaderboard').addEventListener('click',()=>showAccount('global'));
+$('recoverEmpire').addEventListener('click',()=>$('recoverySetup').classList.toggle('hidden'));
+$('submitRecovery').addEventListener('click',async()=>{try{api=resolveApi();const data=await request('/api/recover',{recoveryCode:$('recoveryCodeInput').value},false);token=data.token;localStorage.setItem(storageKey(api),token);localStorage.setItem('starfall-mp-server',api);$('recoveryCodeInput').value='';start(data.galaxy);sessionStorage.setItem('starfall-recovery-once',data.recoveryCode);showRecoveryCode(data.recoveryCode);}catch(e){message(e.message,true);}});
 $('mpProfile').addEventListener('click',()=>showAccount('profile'));
 $('mpLeaderboard').addEventListener('click',()=>showAccount('leaderboard'));
 $('mpAccountClose').addEventListener('click',()=>$('mpAccountOverlay').classList.add('hidden'));
