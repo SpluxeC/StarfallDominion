@@ -152,6 +152,20 @@ test('planetary biome and living city milestone reflects deposits, buildings and
  assert.ok(script);
  assert.doesNotThrow(()=>new Function(script[1]));
 });
+test('three dimensional planetary camera integrates with the construction view and falls back to 2D',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'../multiplayer/index.html'),'utf8');
+ const js=fs.readFileSync(path.join(__dirname,'../multiplayer/planet3d.js'),'utf8');
+ for(const token of ['src="./planet3d.js"','id="planet3DHost"','id="planetViewToggle"','function switchPlanetView(view)','function planet3dState(s)','StarfallPlanet3D.update','StarfallPlanet3D.zoom','StarfallPlanet3D.reset','surfaceArrival','switchPlanetView(planetView)'])
+  assert.ok(html.includes(token),'missing browser integration '+token);
+ for(const token of ['three.module.js','THREE.WebGLRenderer','THREE.Raycaster','function buildGlobe(state)','function buildDistrict(group,type,level,queued)','function surfaceGroup(lat,lon)','function route(from,to','function zoom(delta)','function unmount()','get ready()','pointermove','wheel','keydown','render','catch(err)'])
+  assert.ok(js.includes(token),'missing 3D behavior '+token);
+ assert.match(js,/const count=Math\.min\(140/);
+ assert.match(js,/Math\.min\(8,level\)/);
+ assert.doesNotThrow(()=>new Function(js));
+ const inline=html.match(/<script>([\s\S]*?)<\/script>/);
+ assert.ok(inline);
+ assert.doesNotThrow(()=>new Function(inline[1]));
+});
 test('HTTP server enforces invitations, bearer authorization, scoped empires, SSE, and restart persistence',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'starfall-mp-'));
  const file=path.join(dir,'galaxy.json');
