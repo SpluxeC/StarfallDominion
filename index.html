@@ -765,7 +765,7 @@ function renderMoonConstruction(planet,planetId){
  const grid=document.getElementById('soloDistrictGrid');if(!grid)return;
  let section=document.getElementById('moonConstruction');
  if(!section){section=document.createElement('section');section.id='moonConstruction';section.className='solo-inspector';grid.parentElement.insertBefore(section,grid.nextSibling);}
- section.replaceChildren();
+ section.replaceChildren();renderStation(planet,planetId,section);
  const title=document.createElement('h2');title.textContent='Moons & Orbital Defense';section.appendChild(title);
  if(!planet.moons?.length){const p=document.createElement('p');p.textContent='This planet has no moons.';section.appendChild(p);return;}
  for(const [index,moon] of planet.moons.entries()){
@@ -866,6 +866,7 @@ function runAutomation(dt){
 }
 function processJobs(dt){const waiting=[];for(const j of game.jobs){const s=game.systems[j.system];if(!s||s.owner!=='player')continue;if(j.type==='outpost'&&(s.isHomeworld||j.system===0)){note('Invalid homeworld outpost order cancelled.');continue;}j.remaining-=dt;if(j.remaining>0){waiting.push(j);continue;}
  const k={mine:'mines',reactor:'reactors',farm:'farms',shipyard:'shipyards',extractor:'extractors'}[j.type];
+ if(j.type==='spaceStation'){s.station=Math.min(5,(s.station||0)+1);s.stationHP=100+s.station*110;note('Station Level '+s.station+' completed at '+s.name+'.');continue;}
  if(j.type==='moonCannon'){const moon=s.moons?.[j.moon];if(moon&&moon.cannon<5){moon.cannon++;moon.hp=60+moon.cannon*40;note('Orbital Defense Cannon level '+moon.cannon+' complete on '+moon.name+'.');}continue;}
  if(k)s[k]++;else if(['foundry','laboratory','tradeHub','outpost','fortress','refinery','barracks','factory','radar'].includes(j.type))s[j.type]=(s[j.type]||0)+1;else if(j.type==='troops')s.troops=(s.troops||0)+5*Math.max(1,s.barracks||0);else if(j.type==='marines')s.marines=(s.marines||0)+3*Math.max(1,s.barracks||0);else if(j.type==='armor')s.armor=(s.armor||0)+2*Math.max(1,s.factory||0);else if(j.type==='fleet')s.ships+=2;else if(j.type==='frigate'){s.frigates=(s.frigates||0)+1;s.ships+=1;}else if(j.type==='cruiser'){s.cruisers=(s.cruisers||0)+1;s.ships+=1;}else if(j.type==='upgrade')s.level=Math.min(4,s.level+1);
  note(j.type+' completed at '+s.name+'.');
