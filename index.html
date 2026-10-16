@@ -241,7 +241,70 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const map=documen
  });
 })();
 
-(function(){const buttons=[...document.querySelectorAll('[data-command-tab]')],panels=[...document.querySelectorAll('[data-tab-panel]')];function activate(tab){document.body.dataset.activeDeck=tab;if(!buttons.some(b=>b.dataset.commandTab===tab&&!b.hidden))tab='colony';buttons.forEach(b=>{const active=b.dataset.commandTab===tab;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});panels.forEach(p=>p.hidden=p.dataset.tabPanel!==tab);document.body.dataset.activeDeck=tab;if(typeof campaignMissionPanel==='function')campaignMissionPanel();if(typeof syncCampaignDialogueVisibility==='function')syncCampaignDialogueVisibility();if(tab==='settings'&&typeof window.renderSettingsProgress==='function')window.renderSettingsProgress();if(window.matchMedia('(max-width:900px)').matches){document.querySelector('.sidebar')?.scrollIntoView({block:'start',behavior:'smooth'});}try{sessionStorage.setItem('starfall-command-tab',tab)}catch(e){}}buttons.forEach(b=>b.addEventListener('click',()=>activate(b.dataset.commandTab)));let saved='colony';try{saved=sessionStorage.getItem('starfall-command-tab')||saved}catch(e){}activate(saved);const drawer=document.getElementById('resourceDrawer'),toggle=document.getElementById('resourceToggle');function setCollapsed(collapsed){drawer.classList.toggle('collapsed',collapsed);toggle.setAttribute('aria-expanded',String(!collapsed));toggle.firstChild.textContent=collapsed?'▸ Resources ':'▾ Resources ';try{localStorage.setItem('starfall-resource-collapsed',collapsed?'1':'0')}catch(e){}}let collapsed=false;try{collapsed=localStorage.getItem('starfall-resource-collapsed')==='1'}catch(e){}setCollapsed(collapsed);toggle.addEventListener('click',()=>setCollapsed(!drawer.classList.contains('collapsed')));})();</script><footer>Local test prototype — no multiplayer, accounts, or server persistence yet. All gameplay values are experimental.</footer>
+(function(){const buttons=[...document.querySelectorAll('[data-command-tab]')],panels=[...document.querySelectorAll('[data-tab-panel]')];function activate(tab){document.body.dataset.activeDeck=tab;if(!buttons.some(b=>b.dataset.commandTab===tab&&!b.hidden))tab='colony';buttons.forEach(b=>{const active=b.dataset.commandTab===tab;b.classList.toggle('active',active);b.setAttribute('aria-selected',String(active));});panels.forEach(p=>p.hidden=p.dataset.tabPanel!==tab);document.body.dataset.activeDeck=tab;if(typeof campaignMissionPanel==='function')campaignMissionPanel();if(typeof syncCampaignDialogueVisibility==='function')syncCampaignDialogueVisibility();if(tab==='settings'&&typeof window.renderSettingsProgress==='function')window.renderSettingsProgress();if(window.matchMedia('(max-width:900px)').matches){document.querySelector('.sidebar')?.scrollIntoView({block:'start',behavior:'smooth'});}try{sessionStorage.setItem('starfall-command-tab',tab)}catch(e){}}buttons.forEach(b=>b.addEventListener('click',()=>activate(b.dataset.commandTab)));let saved='colony';try{saved=sessionStorage.getItem('starfall-command-tab')||saved}catch(e){}activate(saved);const drawer=document.getElementById('resourceDrawer'),toggle=document.getElementById('resourceToggle');function setCollapsed(collapsed){drawer.classList.toggle('collapsed',collapsed);toggle.setAttribute('aria-expanded',String(!collapsed));toggle.firstChild.textContent=collapsed?'▸ Resources ':'▾ Resources ';try{localStorage.setItem('starfall-resource-collapsed',collapsed?'1':'0')}catch(e){}}let collapsed=false;try{collapsed=localStorage.getItem('starfall-resource-collapsed')==='1'}catch(e){}setCollapsed(collapsed);toggle.addEventListener('click',()=>setCollapsed(!drawer.classList.contains('collapsed')));})();
+/* Holomap camera: wheel zoom on desktop and two-pointer pinch on touch screens. */
+(function setupHolomapZoom(){
+ const map=document.getElementById('map');if(!map)return;
+ const extent={width:900,height:580},minScale=1,maxScale=5;
+ let view={x:0,y:0,width:900,height:580},pinchStart=null,suppressClickUntil=0;
+ const pointers=new Map();
+ map.style.touchAction='none';
+ const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
+ const setView=(x,y,width,height)=>{
+  width=clamp(width,extent.width/maxScale,extent.width/minScale);
+  height=width*extent.height/extent.width;
+  view={x:clamp(x,0,extent.width-width),y:clamp(y,0,extent.height-height),width,height};
+  map.setAttribute('viewBox',[view.x,view.y,view.width,view.height].join(' '));
+ };
+ const point=(clientX,clientY)=>{
+  const rect=map.getBoundingClientRect();
+  if(!rect.width||!rect.height)return null;
+  // Preserve coordinates when the SVG is letterboxed by preserveAspectRatio.
+  const scale=Math.min(rect.width/view.width,rect.height/view.height);
+  const left=rect.left+(rect.width-view.width*scale)/2,top=rect.top+(rect.height-view.height*scale)/2;
+  return {x:clamp((clientX-left)/scale,0,view.width)+view.x,y:clamp((clientY-top)/scale,0,view.height)+view.y};
+ };
+ const zoom=(factor,cx,cy)=>{
+  const anchor=point(cx,cy);if(!anchor)return;
+  const width=clamp(view.width/factor,extent.width/maxScale,extent.width),height=width*extent.height/extent.width;
+  const fx=(anchor.x-view.x)/view.width,fy=(anchor.y-view.y)/view.height;
+  setView(anchor.x-fx*width,anchor.y-fy*height,width,height);
+ };
+ map.addEventListener('wheel',event=>{
+  if(!document.body.classList.contains('in-game'))return;
+  event.preventDefault();zoom(Math.exp(-clamp(event.deltaY,-150,150)*.003),event.clientX,event.clientY);
+ },{passive:false});
+ map.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse')return;
+  pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(pointers.size===2){
+   const [a,b]=[...pointers.values()];
+   pinchStart={distance:Math.hypot(a.x-b.x,a.y-b.y),view:{...view}};
+   suppressClickUntil=Date.now()+700;
+  }
+ });
+ map.addEventListener('pointermove',event=>{
+  if(!pointers.has(event.pointerId))return;
+  pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(pointers.size!==2||!pinchStart)return;
+  const [a,b]=[...pointers.values()],distance=Math.hypot(a.x-b.x,a.y-b.y);
+  if(!distance||!pinchStart.distance)return;
+  const midX=(a.x+b.x)/2,midY=(a.y+b.y)/2;
+  const rect=map.getBoundingClientRect(),base=pinchStart.view;
+  const scale=Math.min(rect.width/base.width,rect.height/base.height);
+  const left=rect.left+(rect.width-base.width*scale)/2,top=rect.top+(rect.height-base.height*scale)/2;
+  const anchorX=base.x+(midX-left)/scale,anchorY=base.y+(midY-top)/scale;
+  const width=clamp(base.width*pinchStart.distance/distance,extent.width/maxScale,extent.width);
+  const height=width*extent.height/extent.width;
+  const fx=(anchorX-base.x)/base.width,fy=(anchorY-base.y)/base.height;
+  setView(anchorX-fx*width,anchorY-fy*height,width,height);
+  suppressClickUntil=Date.now()+700;
+ });
+ const release=event=>{pointers.delete(event.pointerId);if(pointers.size<2)pinchStart=null;};
+ map.addEventListener('pointerup',release);map.addEventListener('pointercancel',release);
+ map.addEventListener('click',event=>{if(Date.now()<suppressClickUntil){event.preventDefault();event.stopImmediatePropagation();}},true);
+})();
+</script><footer>Local test prototype — no multiplayer, accounts, or server persistence yet. All gameplay values are experimental.</footer>
 <script src="resource-icons.js"></script><script>
 /* Starfall Dominion v6.6 — deterministic, per-ship tactical combat.
    Deliberately independent of the map, UI and resource economy. */
