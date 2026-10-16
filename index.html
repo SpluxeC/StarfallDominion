@@ -716,6 +716,8 @@ function ensureMoons(state){
  if(!state?.systems)return;
  state.systems.forEach((planet,index)=>{
   planet.name=CANONICAL_PLANET_NAMES[index]||planet.name;
+  planet.station=Math.max(0,Math.min(5,Math.floor(Number(planet.station)||0)));
+  planet.stationHP=Math.max(0,Math.floor(Number(planet.stationHP)||0));
   if(!Array.isArray(planet.moons)){
    const roll=((index*37+17)%100),count=roll<25?0:roll<65?1:roll<90?2:3;
    planet.moons=Array.from({length:count},(_,i)=>({id:index+'-'+i,cannon:0,hp:0}));
