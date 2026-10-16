@@ -740,6 +740,27 @@ function buildMoonCannon(planetId,moonIndex){
  note('Orbital Defense Cannon '+(moon.cannon?'upgrade':'construction')+' started on '+moon.name+' ('+duration+'s).');
  save(true);render();
 }
+function stationLimit(){return Math.floor(game.systems.filter(p=>p.owner==='player').length/2);}
+function stationCost(level){return {credits:180+level*100,minerals:100+level*60,alloys:90+level*55,crystals:4+level*2};}
+function buildStation(id){
+ const p=game.systems[id];if(!p||p.owner!=='player'||p.level<3||p.station>=5||game.over)return;
+ const pending=game.jobs.some(j=>j.type==='spaceStation'&&j.system===id);
+ const used=game.systems.filter(q=>q.owner==='player'&&q.station>0).length+game.jobs.filter(j=>j.type==='spaceStation'&&game.systems[j.system]?.owner==='player'&&!game.systems[j.system]?.station).length;
+ if(pending||(!p.station&&used>=stationLimit())||game.jobs.filter(j=>j.system===id).length>=4)return;
+ const price=stationCost(p.station);if(!has(price))return;
+ spend(price);game.jobs.push({type:'spaceStation',system:id,remaining:60+p.station*40});note('Station construction queued at '+p.name+'.');save(true);render();
+}
+function renderStation(p,id,host){
+ const title=document.createElement('h2');title.textContent='Orbital Space Station';host.appendChild(title);
+ const job=game.jobs.find(j=>j.type==='spaceStation'&&j.system===id);
+ const used=game.systems.filter(q=>q.owner==='player'&&q.station>0).length+game.jobs.filter(j=>j.type==='spaceStation'&&game.systems[j.system]?.owner==='player'&&!game.systems[j.system]?.station).length;
+ const line=document.createElement('p');line.textContent='Level '+p.station+'/5 · Stations '+used+'/'+stationLimit()+(job?' · '+Math.ceil(job.remaining)+'s remaining':'');host.appendChild(line);
+ if(p.level<3)return;
+ const btn=document.createElement('button');btn.textContent=job?'Constructing…':p.station>=5?'Maximum Level':p.station?'Upgrade Station':'Build Station';
+ btn.disabled=!!job||p.station>=5||(!p.station&&used>=stationLimit())||!has(stationCost(p.station))||game.over;
+ btn.title=Object.entries(stationCost(p.station)).map(([k,v])=>v+' '+k).join(', ');
+ btn.addEventListener('click',()=>buildStation(id));host.appendChild(btn);
+}
 function renderMoonConstruction(planet,planetId){
  const grid=document.getElementById('soloDistrictGrid');if(!grid)return;
  let section=document.getElementById('moonConstruction');
