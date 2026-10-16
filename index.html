@@ -181,11 +181,11 @@ body[data-active-deck="trade"] .layout{grid-template-columns:minmax(0,1fr);max-w
 /* Campaign story overlay only belongs to Colony and Fleet. */
 #campaignDialogue[hidden]{display:none!important}
 @media(max-width:650px){
- #campaignDialogue{align-items:stretch;justify-content:center;padding:max(8px,env(safe-area-inset-top,0px)) 8px max(8px,env(safe-area-inset-bottom,0px));height:100dvh;overflow:hidden}
- #campaignDialogue .campaign-dialogue-card{display:flex;flex-direction:column;min-height:0;max-height:100%;width:100%;overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 0}
+ #campaignDialogue{position:fixed!important;inset:0!important;width:100vw;height:100dvh;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:calc(env(safe-area-inset-top,0px) + 10px) 10px calc(env(safe-area-inset-bottom,0px) + 10px);overflow:hidden}
+ #campaignDialogue .campaign-dialogue-card{display:flex;flex-direction:column;flex:0 1 auto;min-height:0;max-height:100%;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 20px);width:100%;overflow:hidden;padding:14px 14px 0}
  #campaignDialogue .campaign-dialogue-card h2{margin:6px 0 8px}
- #campaignDialogue .campaign-dialogue-scene{margin:8px 0;flex:1 1 auto;min-height:0;overflow-y:auto}
- #campaignDialogue .campaign-dialogue-actions{position:sticky;bottom:0;z-index:2;flex:0 0 auto;justify-content:stretch;margin:8px -14px 0;padding:10px 14px max(12px,env(safe-area-inset-bottom,0px));background:#091b30;border-top:1px solid #4988b9}
+ #campaignDialogue .campaign-dialogue-scene{margin:8px 0;flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ #campaignDialogue .campaign-dialogue-actions{position:relative;flex:0 0 auto;justify-content:stretch;margin:8px -14px 0;padding:10px 14px 12px;background:#091b30;border-top:1px solid #4988b9}
  #campaignDialogue .campaign-dialogue-actions button{flex:1;min-height:44px}
 }
 </style></head><body>
