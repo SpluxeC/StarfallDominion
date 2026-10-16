@@ -257,8 +257,34 @@ body.in-game #gameTutorial .game-tutorial-actions{
  #gameTutorial .game-tutorial-shell{height:100dvh;max-height:100dvh;width:100%;border-radius:0;padding:12px 12px 4px}
  #gameTutorial .game-tutorial-actions{padding-bottom:max(12px,env(safe-area-inset-bottom,0px))!important}
 }
+
+/* Multiplayer account foundation; isolated from solo saves and profiles. */
+#multiplayerAccount{position:fixed;inset:0;z-index:200100;display:flex;align-items:center;justify-content:center;padding:16px;background:#020a18ed;overflow:auto}
+#multiplayerAccount.hidden{display:none!important}
+#multiplayerAccount .mp-auth-card{width:min(440px,100%);padding:22px;background:#0a2038;border:1px solid #477fa3;border-radius:16px;color:#eff9ff;box-shadow:0 20px 70px #000b;max-height:95dvh;overflow:auto}
+#multiplayerAccount .mp-auth-card label{display:block;margin:13px 0 5px}
+#multiplayerAccount .mp-auth-card input{display:block;box-sizing:border-box;width:100%;min-height:44px;border-radius:7px;border:1px solid #64849f;background:#07182c;color:white;padding:10px;font-size:16px}
+#multiplayerAccount .mp-auth-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#multiplayerAccount .mp-auth-actions button{min-height:44px;flex:1 1 auto}
+#mpAuthMessage{min-height:24px;overflow-wrap:anywhere}
+#mpAuthMessage[data-error="true"]{color:#ffc1bf}
 </style></head><body>
-<section id="soloTitle" class="solo-title" role="dialog" aria-modal="true" aria-label="Starfall Dominion title screen"><div class="solo-menu-backdrop" aria-hidden="true"><div class="solo-nebula"></div><div class="solo-stars solo-stars-near"></div><div class="solo-stars solo-stars-far"></div><div class="solo-small-planet solo-small-planet-a"></div><div class="solo-small-planet solo-small-planet-b"></div><div class="solo-small-planet solo-small-planet-c"></div></div><div class="solo-title-content"><div class="solo-orb" aria-hidden="true"><div class="solo-earth-surface"><svg viewBox="0 0 760 370" preserveAspectRatio="none" aria-hidden="true"><g fill="#5d9f77" stroke="#377e69" stroke-width="3"><path d="M35 70L95 40 156 57 176 89 152 116 171 145 148 170 136 207 107 224 82 184 59 173 48 140 18 124Z"/><path d="M149 205L193 217 221 251 208 293 183 350 162 337 150 299 138 264Z"/><path d="M303 76L348 48 391 55 429 44 495 63 525 91 506 124 472 129 456 153 431 154 404 133 391 156 361 143 342 118 318 123Z"/><path d="M352 154L408 156 442 194 422 241 398 286 374 331 346 297 340 248 320 217Z"/><path d="M498 204L545 183 581 204 602 239 588 276 533 269 509 242Z"/><path d="M668 63L713 57 745 78 725 118 689 121Z"/></g><g fill="#bed0a2" opacity=".48"><path d="M93 65L135 76 127 101 92 112 77 93Z"/><path d="M349 102L387 76 412 88 405 110 371 127Z"/><path d="M533 219L572 218 580 244 547 253Z"/></g></svg></div><div class="solo-earth-clouds"></div></div><p class="solo-kicker">THE GALAXY IS YOURS TO CONQUER</p><h1>STARFALL<br>DOMINION</h1><p>Living Colonies - Fleet Warfare - Orbital Defense</p><div class="buttons solo-title-actions"><button id="menuCampaign" class="primary">Campaign</button><button id="menuCustom">Custom Game</button><button id="menuOnline">Online</button><button id="soloGuide">Tutorial</button><button id="soloTitleProfile">Profile</button><button id="soloTitleLeaderboard">Leaderboard</button><p id="profileGateHint" class="help" role="status">Create a commander profile to begin.</p></div><p class="help">Your existing browser save is preserved.</p></div></section>
+<section id="soloTitle" class="solo-title" role="dialog" aria-modal="true" aria-label="Starfall Dominion title screen"><div class="solo-menu-backdrop" aria-hidden="true"><div class="solo-nebula"></div><div class="solo-stars solo-stars-near"></div><div class="solo-stars solo-stars-far"></div><div class="solo-small-planet solo-small-planet-a"></div><div class="solo-small-planet solo-small-planet-b"></div><div class="solo-small-planet solo-small-planet-c"></div></div><div class="solo-title-content"><div class="solo-orb" aria-hidden="true"><div class="solo-earth-surface"><svg viewBox="0 0 760 370" preserveAspectRatio="none" aria-hidden="true"><g fill="#5d9f77" stroke="#377e69" stroke-width="3"><path d="M35 70L95 40 156 57 176 89 152 116 171 145 148 170 136 207 107 224 82 184 59 173 48 140 18 124Z"/><path d="M149 205L193 217 221 251 208 293 183 350 162 337 150 299 138 264Z"/><path d="M303 76L348 48 391 55 429 44 495 63 525 91 506 124 472 129 456 153 431 154 404 133 391 156 361 143 342 118 318 123Z"/><path d="M352 154L408 156 442 194 422 241 398 286 374 331 346 297 340 248 320 217Z"/><path d="M498 204L545 183 581 204 602 239 588 276 533 269 509 242Z"/><path d="M668 63L713 57 745 78 725 118 689 121Z"/></g><g fill="#bed0a2" opacity=".48"><path d="M93 65L135 76 127 101 92 112 77 93Z"/><path d="M349 102L387 76 412 88 405 110 371 127Z"/><path d="M533 219L572 218 580 244 547 253Z"/></g></svg></div><div class="solo-earth-clouds"></div></div><p class="solo-kicker">THE GALAXY IS YOURS TO CONQUER</p><h1>STARFALL<br>DOMINION</h1><p>Living Colonies - Fleet Warfare - Orbital Defense</p><div class="buttons solo-title-actions"><button id="menuCampaign" class="primary">Campaign</button><button id="menuCustom">Custom Game</button><button id="menuOnline">Online</button><button id="soloGuide">Tutorial</button><button id="soloTitleProfile">Profile</button><button id="multiplayerAccountOpen" type="button">Multiplayer Account</button><button id="soloTitleLeaderboard">Leaderboard</button><p id="profileGateHint" class="help" role="status">Create a commander profile to begin.</p></div><p class="help">Your existing browser save is preserved.</p></div></section>
+
+<section id="multiplayerAccount" class="hidden" role="dialog" aria-modal="true" aria-labelledby="mpAuthTitle">
+<div class="mp-auth-card">
+<div class="stat"><h2 id="mpAuthTitle">Multiplayer Account</h2><button type="button" id="mpAuthClose">✕ Close</button></div>
+<p class="help" id="mpAuthInfo">Sign in or register to access future multiplayer lobbies. Campaign and solo games do not require an account.</p>
+<form id="mpAuthForm">
+<label for="mpAuthEmail">Email</label><input id="mpAuthEmail" type="email" autocomplete="email" maxlength="254" required>
+<label for="mpAuthPassword">Password</label><input id="mpAuthPassword" type="password" autocomplete="current-password" minlength="8" required>
+<div id="mpAuthNameGroup" hidden><label for="mpAuthName">Commander name (3–24 characters)</label><input id="mpAuthName" maxlength="24" minlength="3" autocomplete="nickname"></div>
+<div class="mp-auth-actions"><button id="mpAuthSubmit" type="submit" class="primary">Sign In</button><button id="mpAuthSwitch" type="button">Create Account</button></div>
+</form>
+<div id="mpAuthLoggedIn" hidden><p id="mpAuthIdentity"></p><label for="mpAuthDisplayName">Commander name</label><input id="mpAuthDisplayName" maxlength="24" minlength="3"><div class="mp-auth-actions"><button id="mpAuthSaveName" type="button">Save Name</button><button id="mpAuthSignOut" type="button">Sign Out</button></div></div>
+<div class="mp-auth-actions"><button id="mpAuthForgot" type="button">Reset Password</button></div>
+<p id="mpAuthMessage" role="status" aria-live="polite"></p>
+</div></section>
 <section id="modeSetup" class="mode-setup hidden" role="dialog" aria-modal="true" aria-labelledby="modeHeading"><div class="mode-setup-card"><button type="button" id="modeBack">← Main Menu</button><h2 id="modeHeading">Choose a mode</h2><p id="modeDescription" class="help"></p><div id="modeBody"></div></div></section>
 <section id="gameTutorial" class="game-tutorial hidden" role="dialog" aria-modal="true" aria-labelledby="tutorialHeading" tabindex="-1">
 <div class="game-tutorial-shell">
@@ -1452,4 +1478,102 @@ for(const evt of ['input','change','focusin','keydown'])document.addEventListene
 function mobileControlBusy(now){const focused=document.activeElement;return activePointer||now-lastInteractionAt<1500||!!focused?.matches?.('input:not([type="checkbox"]):not([type="radio"]),select,textarea');}
 setInterval(()=>{const now=Date.now(),delta=Math.max(0,Math.min(.5,(now-lastFrameAt)/1000));lastFrameAt=now;stepSimulation(delta*speed);updateFleetMarkers();if(now-lastReadoutAt>=1000){lastReadoutAt=now;updateLiveReadouts();if(document.getElementById('map')?.querySelectorAll('[role="button"]').length<game.systems.length){lastMapSignature='';renderGalaxyMap(true);}}if(!mobileControlBusy(now)&&(structureSignature()!==lastStructureSignature||now-lastFullRefreshAt>=15000)){lastFullRefreshAt=now;render();}},100);
 if(typeof window!=='undefined'){window.addEventListener('pagehide',()=>save(true));window.addEventListener('beforeunload',()=>save(true));document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')save(true);});window.addEventListener('blur',()=>save(true));setInterval(()=>save(),5000);}document.getElementById('save').addEventListener('click',()=>{save(true);note('Game saved to this browser.');render();});document.getElementById('reset').addEventListener('click',()=>{if(confirm('Erase this local save and start a new galaxy?')){game=initial();normalizeGame(game);newGlobalRun();selected=0;lastMapSignature='';lastStructureSignature='';save(true);render();}});try{render();}catch(error){console.error('Starfall startup rendering failed',error);const status=document.getElementById('hudThreat');if(status)status.textContent='⚠ Display recovery';if(typeof window.starfallEmergencyMap==='function')window.starfallEmergencyMap(error);}
-</script></body></html>
+</script>
+<script type="module">
+/* Stage 1: the Supabase publishable key is public; no admin or service credentials ship to browsers. */
+const PROJECT_URL='https://tvfifdfgkvdzemnkcmsa.supabase.co';
+const PUBLIC_KEY='sb_publishable_xcfRogblWG0osJ-S_qpTaw_ahNomtEA';
+const el=id=>document.getElementById(id);
+let authClient=null,authMode='signin',accountUser=null,busy=false;
+const message=(text,error=false)=>{el('mpAuthMessage').textContent=text;el('mpAuthMessage').dataset.error=String(error)};
+async function client(){
+ if(authClient)return authClient;
+ const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/+esm');
+ authClient=createClient(PROJECT_URL,PUBLIC_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ authClient.auth.onAuthStateChange((event,session)=>{
+  accountUser=session?.user||null;
+  // Avoid querying the database inside this callback; auth callbacks hold a lock.
+  paint();
+  if(event==='PASSWORD_RECOVERY'){el('multiplayerAccount').classList.remove('hidden');setMode('recovery');message('Enter a new password and select Update Password.');}
+ });
+ return authClient;
+}
+function setMode(mode){
+ authMode=mode;
+ const recovery=mode==='recovery',signup=mode==='signup';
+ el('mpAuthTitle').textContent=recovery?'Choose New Password':signup?'Register Commander':'Multiplayer Account';
+ el('mpAuthNameGroup').hidden=!signup;
+ el('mpAuthEmail').parentElement.querySelector('#mpAuthEmail').required=!recovery;
+ el('mpAuthEmail').disabled=recovery;
+ el('mpAuthPassword').autocomplete=signup?'new-password':recovery?'new-password':'current-password';
+ el('mpAuthSubmit').textContent=recovery?'Update Password':signup?'Create Account':'Sign In';
+ el('mpAuthSwitch').textContent=signup?'Already Registered? Sign In':'Create Account';
+ el('mpAuthSwitch').hidden=recovery;
+ el('mpAuthForgot').hidden=recovery;
+ paint();
+}
+function paint(){
+ el('mpAuthForm').hidden=!!accountUser&&authMode!=='recovery';
+ el('mpAuthLoggedIn').hidden=!accountUser||authMode==='recovery';
+ if(accountUser&&authMode!=='recovery')el('mpAuthIdentity').textContent='Signed in as '+(accountUser.email||'Commander');
+}
+function validName(name){return /^[A-Za-z0-9 _-]{3,24}$/.test(name.trim());}
+async function openAccount(){
+ el('multiplayerAccount').classList.remove('hidden');message('');setMode('signin');
+ try{
+  const c=await client();const {data,error}=await c.auth.getUser();
+  if(error&&!/session missing/i.test(error.message))throw error;
+  accountUser=data?.user||null;paint();
+  if(accountUser){const {data:profile}=await c.from('multiplayer_profiles').select('commander_name').eq('user_id',accountUser.id).maybeSingle();el('mpAuthDisplayName').value=profile?.commander_name||'';}
+ }catch(err){message('Account service unavailable: '+err.message,true);}
+}
+el('multiplayerAccountOpen').addEventListener('click',openAccount);
+el('mpAuthClose').addEventListener('click',()=>el('multiplayerAccount').classList.add('hidden'));
+el('mpAuthSwitch').addEventListener('click',()=>{setMode(authMode==='signup'?'signin':'signup');message('')});
+el('mpAuthForm').addEventListener('submit',async event=>{
+ event.preventDefault();if(busy)return;busy=true;el('mpAuthSubmit').disabled=true;
+ try{
+  const c=await client(),email=el('mpAuthEmail').value.trim(),password=el('mpAuthPassword').value;
+  if(authMode==='recovery'){
+   const {error}=await c.auth.updateUser({password});if(error)throw error;
+   el('mpAuthPassword').value='';setMode('signin');message('Password changed. You can now sign in.');
+  }else if(authMode==='signup'){
+   const name=el('mpAuthName').value.trim();
+   if(!validName(name))throw Error('Commander name must be 3–24 letters, numbers, spaces, underscores or hyphens.');
+   const {data:existing,error:lookupErr}=await c.from('multiplayer_profiles').select('user_id').ilike('commander_name',name).limit(1);
+   if(lookupErr)throw lookupErr;
+   if(existing?.length)throw Error('That commander name is taken.');
+   const {data,error}=await c.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname,data:{commander_name:name}}});
+   if(error)throw error;
+   if(data.session){
+    const {error:profileError}=await c.from('multiplayer_profiles').upsert({user_id:data.user.id,commander_name:name},{onConflict:'user_id'});
+    if(profileError)throw Error('Account created, but commander name needs saving: '+profileError.message);
+    accountUser=data.user;paint();el('mpAuthDisplayName').value=name;message('Account created and signed in.');
+   }else{setMode('signin');message('Registration requested. Check your email to confirm the account, then sign in.');}
+  }else{
+   const {data,error}=await c.auth.signInWithPassword({email,password});if(error)throw error;
+   accountUser=data.user;paint();
+   const {data:profile}=await c.from('multiplayer_profiles').select('commander_name').eq('user_id',data.user.id).maybeSingle();
+   el('mpAuthDisplayName').value=profile?.commander_name||data.user.user_metadata?.commander_name||'';
+   message('Signed in successfully.');
+  }
+ }catch(err){message(err.message||'Authentication failed.',true)}
+ finally{busy=false;el('mpAuthSubmit').disabled=false;el('mpAuthPassword').value='';}
+});
+el('mpAuthSaveName').addEventListener('click',async()=>{
+ if(!accountUser)return;const name=el('mpAuthDisplayName').value.trim();
+ if(!validName(name)){message('Use 3–24 letters, numbers, spaces, underscores or hyphens.',true);return}
+ try{const c=await client();const {error}=await c.from('multiplayer_profiles').upsert({user_id:accountUser.id,commander_name:name,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;message('Commander name saved.');}catch(err){message(err.message,true)}
+});
+el('mpAuthSignOut').addEventListener('click',async()=>{
+ try{const c=await client();const {error}=await c.auth.signOut();if(error)throw error;accountUser=null;setMode('signin');message('Signed out. Your solo saves are unchanged.');}catch(err){message(err.message,true)}
+});
+el('mpAuthForgot').addEventListener('click',async()=>{
+ const email=el('mpAuthEmail').value.trim();
+ if(!email){message('Enter your email address first.',true);return}
+ try{const c=await client();const {error}=await c.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;message('If the email is registered, a password-reset link will arrive shortly.');}catch(err){message(err.message,true)}
+});
+// Restore authenticated session and handle recovery-link redirects on page load.
+client().then(async c=>{const {data}=await c.auth.getUser();accountUser=data?.user||null;paint();}).catch(()=>{});
+</script>
+</body></html>
