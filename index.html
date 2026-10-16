@@ -1518,13 +1518,28 @@ function paint(){
  if(accountUser&&authMode!=='recovery')el('mpAuthIdentity').textContent='Signed in as '+(accountUser.email||'Commander');
 }
 function validName(name){return /^[A-Za-z0-9 _-]{3,24}$/.test(name.trim());}
+async function loadCommander(c,user){
+ if(!user)return;
+ const {data,error}=await c.from('multiplayer_profiles').select('commander_name').eq('user_id',user.id).maybeSingle();
+ if(error)throw error;
+ let name=data?.commander_name;
+ if(!name){
+  const proposed=(user.user_metadata?.commander_name||'').trim();
+  if(validName(proposed)){
+   const {error:saveErr}=await c.from('multiplayer_profiles').insert({user_id:user.id,commander_name:proposed});
+   if(saveErr){message('Signed in. Select an available commander name to finish setup.',true);}
+   else name=proposed;
+  }
+ }
+ el('mpAuthDisplayName').value=name||'';
+}
 async function openAccount(){
  el('multiplayerAccount').classList.remove('hidden');message('');setMode('signin');
  try{
   const c=await client();const {data,error}=await c.auth.getUser();
   if(error&&!/session missing/i.test(error.message))throw error;
   accountUser=data?.user||null;paint();
-  if(accountUser){const {data:profile}=await c.from('multiplayer_profiles').select('commander_name').eq('user_id',accountUser.id).maybeSingle();el('mpAuthDisplayName').value=profile?.commander_name||'';}
+  if(accountUser)await loadCommander(c,accountUser);
  }catch(err){message('Account service unavailable: '+err.message,true);}
 }
 el('multiplayerAccountOpen').addEventListener('click',openAccount);
@@ -1553,8 +1568,7 @@ el('mpAuthForm').addEventListener('submit',async event=>{
   }else{
    const {data,error}=await c.auth.signInWithPassword({email,password});if(error)throw error;
    accountUser=data.user;paint();
-   const {data:profile}=await c.from('multiplayer_profiles').select('commander_name').eq('user_id',data.user.id).maybeSingle();
-   el('mpAuthDisplayName').value=profile?.commander_name||data.user.user_metadata?.commander_name||'';
+   await loadCommander(c,data.user);
    message('Signed in successfully.');
   }
  }catch(err){message(err.message||'Authentication failed.',true)}
@@ -1574,6 +1588,6 @@ el('mpAuthForgot').addEventListener('click',async()=>{
  try{const c=await client();const {error}=await c.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(error)throw error;message('If the email is registered, a password-reset link will arrive shortly.');}catch(err){message(err.message,true)}
 });
 // Restore authenticated session and handle recovery-link redirects on page load.
-client().then(async c=>{const {data}=await c.auth.getUser();accountUser=data?.user||null;paint();}).catch(()=>{});
+client().then(async c=>{const {data}=await c.auth.getUser();accountUser=data?.user||null;paint();if(accountUser)await loadCommander(c,accountUser);}).catch(()=>{});
 </script>
 </body></html>
