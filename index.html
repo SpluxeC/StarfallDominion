@@ -274,10 +274,18 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const map=documen
   if(!document.body.classList.contains('in-game'))return;
   event.preventDefault();zoom(Math.exp(-clamp(event.deltaY,-150,150)*.003),event.clientX,event.clientY);
  },{passive:false});
+ let drag=null;
+ const canPan=()=>view.width<extent.width-.01;
+ const mapScale=()=>{const rect=map.getBoundingClientRect();return Math.min(rect.width/view.width,rect.height/view.height)||1;};
  map.addEventListener('pointerdown',event=>{
-  if(event.pointerType==='mouse')return;
+  if(event.pointerType==='mouse'&&event.button!==0)return;
   pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(pointers.size===1&&canPan()){
+   drag={id:event.pointerId,x:event.clientX,y:event.clientY,view:{...view},moved:false};
+   if(event.pointerType==='mouse')map.setPointerCapture(event.pointerId);
+  }
   if(pointers.size===2){
+   drag=null;
    const [a,b]=[...pointers.values()];
    pinchStart={distance:Math.hypot(a.x-b.x,a.y-b.y),view:{...view}};
    suppressClickUntil=Date.now()+700;
@@ -286,6 +294,16 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const map=documen
  map.addEventListener('pointermove',event=>{
   if(!pointers.has(event.pointerId))return;
   pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
+  if(pointers.size===1&&drag?.id===event.pointerId){
+   const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+   if(Math.hypot(dx,dy)>6)drag.moved=true;
+   if(drag.moved){
+    const scale=mapScale();
+    setView(drag.view.x-dx/scale,drag.view.y-dy/scale,drag.view.width,drag.view.height);
+    suppressClickUntil=Date.now()+350;
+   }
+   return;
+  }
   if(pointers.size!==2||!pinchStart)return;
   const [a,b]=[...pointers.values()],distance=Math.hypot(a.x-b.x,a.y-b.y);
   if(!distance||!pinchStart.distance)return;
@@ -300,7 +318,14 @@ window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const map=documen
   setView(anchorX-fx*width,anchorY-fy*height,width,height);
   suppressClickUntil=Date.now()+700;
  });
- const release=event=>{pointers.delete(event.pointerId);if(pointers.size<2)pinchStart=null;};
+ const release=event=>{
+  if(drag?.id===event.pointerId&&drag.moved)suppressClickUntil=Date.now()+350;
+  pointers.delete(event.pointerId);
+  if(drag?.id===event.pointerId)drag=null;
+  if(pointers.size<2)pinchStart=null;
+  if(pointers.size===1)drag=null;
+  if(map.hasPointerCapture(event.pointerId))map.releasePointerCapture(event.pointerId);
+ };
  map.addEventListener('pointerup',release);map.addEventListener('pointercancel',release);
  map.addEventListener('click',event=>{if(Date.now()<suppressClickUntil){event.preventDefault();event.stopImmediatePropagation();}},true);
 })();
