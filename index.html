@@ -228,6 +228,16 @@ body[data-active-deck="trade"] .layout{grid-template-columns:minmax(0,1fr);max-w
 #gameTutorial .game-tutorial-actions button{display:block;min-width:0;min-height:46px;white-space:normal}
 @media(max-width:480px){#gameTutorial.game-tutorial{padding:6px}#gameTutorial .game-tutorial-shell{height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);padding:12px}#gameTutorial .game-tutorial-actions{gap:5px}#gameTutorial .game-tutorial-actions button{font-size:12px;padding:8px 5px}}
 
+/* The menu's generic footer hiding rule must not disable tutorial navigation. */
+body:not(.in-game) #gameTutorial .game-tutorial-actions,
+body.in-game #gameTutorial .game-tutorial-actions{
+ visibility:visible!important;
+ pointer-events:auto!important;
+}
+#gameTutorial .game-tutorial-actions button{
+ pointer-events:auto!important;
+ touch-action:manipulation;
+}
 /* Override the site's oversized page-footer padding for tutorial navigation. */
 #gameTutorial .game-tutorial-actions{
  box-sizing:border-box!important;
