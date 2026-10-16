@@ -1512,7 +1512,7 @@ function setMode(mode){
  el('mpAuthForgot').hidden=recovery;
  paint();
 }
-let commanderName='';
+let commanderName='',accountPanelRequested=false;
 function syncLocalName(name){
  if(!validName(name))return;
  try{
@@ -1523,7 +1523,7 @@ function syncLocalName(name){
 }
 function showGate(){
  const ready=!!(accountUser&&validName(commanderName));
- el('multiplayerAccount').classList.toggle('hidden',ready);
+ el('multiplayerAccount').classList.toggle('hidden',ready&&!accountPanelRequested);
  el('mpAuthClose').hidden=!ready;
  if(ready)syncLocalName(commanderName);
 }
@@ -1554,6 +1554,7 @@ async function loadCommander(c,user){
  paint();
 }
 async function openAccount(){
+ accountPanelRequested=true;
  el('multiplayerAccount').classList.remove('hidden');message('');setMode('signin');
  try{
   const c=await client();const {data,error}=await c.auth.getUser();
@@ -1563,7 +1564,7 @@ async function openAccount(){
  }catch(err){message('Account service unavailable: '+err.message,true);}
 }
 
-el('mpAuthClose').addEventListener('click',()=>{if(window.starfallIdentityReady())el('multiplayerAccount').classList.add('hidden')});
+el('mpAuthClose').addEventListener('click',()=>{if(window.starfallIdentityReady()){accountPanelRequested=false;showGate()}});
 el('mpAuthSwitch').addEventListener('click',()=>{setMode(authMode==='signup'?'signin':'signup');message('')});
 el('mpAuthForm').addEventListener('submit',async event=>{
  event.preventDefault();if(busy)return;busy=true;el('mpAuthSubmit').disabled=true;
@@ -1600,7 +1601,7 @@ el('mpAuthSaveName').addEventListener('click',async()=>{
  try{const c=await client();const {error}=await c.from('multiplayer_profiles').upsert({user_id:accountUser.id,commander_name:name,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error;commanderName=name;paint();message('Commander name saved.');}catch(err){message(err.message,true)}
 });
 el('mpAuthSignOut').addEventListener('click',async()=>{
- try{const c=await client();const {error}=await c.auth.signOut();if(error)throw error;accountUser=null;commanderName='';setMode('signin');message('Signed out. Sign in to continue playing.');}catch(err){message(err.message,true)}
+ try{const c=await client();const {error}=await c.auth.signOut();if(error)throw error;accountUser=null;commanderName='';accountPanelRequested=false;setMode('signin');message('Signed out. Sign in to continue playing.');}catch(err){message(err.message,true)}
 });
 el('mpAuthForgot').addEventListener('click',async()=>{
  const email=el('mpAuthEmail').value.trim();
