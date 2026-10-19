@@ -294,7 +294,10 @@ body.in-game #gameTutorial .game-tutorial-actions{
 .solo-district-grid .district-upgrade-button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:auto;min-height:94px;flex:none;padding:12px 14px;text-align:left;white-space:normal}
 .solo-district-grid .district-upgrade-button>.ui-portrait{width:62px;height:62px;min-width:62px;flex:0 0 62px;object-fit:cover}
 .solo-district-grid .district-upgrade-button>span{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;max-width:none}
-.solo-district-grid .district-upgrade-button .district-description,.solo-district-grid .district-upgrade-button .district-requirements,.solo-district-grid .district-upgrade-button .district-build-time{display:block}
+.solo-district-grid .district-upgrade-button .district-description,.solo-district-grid .district-upgrade-button .district-build-time{display:block}
+.solo-district-grid .district-upgrade-button .district-requirements{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:3px 9px;width:100%;min-width:0}
+.solo-district-grid .district-upgrade-button .district-requirements .resource-cost{display:inline-flex;flex-direction:row;align-items:center;gap:3px;margin:0;white-space:nowrap;font-size:11px}
+.solo-district-grid .district-upgrade-button .district-requirements .resource-cost small{display:inline;font-size:10px;line-height:1.2}
 .solo-district-grid .district-upgrade-button.district-building-active{min-height:132px;padding-bottom:49px}
 @media(max-width:600px){
  .solo-district-grid{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
