@@ -287,6 +287,27 @@ body.in-game #gameTutorial .game-tutorial-actions{
 .district-upgrade-button .construction-job strong{display:block;font-size:11px;color:#a6f7bc;line-height:1.35}
 .district-upgrade-button .construction-progress{display:block!important;width:100%;height:10px;margin:3px 0 0!important;border:1px solid #438a56;background:#173e28;overflow:hidden;border-radius:6px}
 .district-upgrade-button .construction-progress-fill{display:block!important;height:100%;background:linear-gradient(90deg,#1bb74b,#71fa98)!important}
+
+/* Colony construction: single-column fleet-style list on all screen sizes */
+.solo-district-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:9px!important;align-items:stretch}
+.solo-district-grid .district-progress-slot{width:100%;height:auto;min-width:0;display:block}
+.solo-district-grid .district-upgrade-button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;width:100%;height:auto;min-height:94px;flex:none;padding:12px 14px;text-align:left;white-space:normal}
+.solo-district-grid .district-upgrade-button>.ui-portrait{width:62px;height:62px;min-width:62px;flex:0 0 62px;object-fit:cover}
+.solo-district-grid .district-upgrade-button>span{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;max-width:none}
+.solo-district-grid .district-upgrade-button .district-description,.solo-district-grid .district-upgrade-button .district-requirements,.solo-district-grid .district-upgrade-button .district-build-time{display:block}
+.solo-district-grid .district-upgrade-button.district-building-active{min-height:132px;padding-bottom:49px}
+@media(max-width:600px){
+ .solo-district-grid{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+ .solo-district-grid .district-upgrade-button{padding:10px 12px;gap:10px;min-height:92px}
+ .solo-district-grid .district-upgrade-button>.ui-portrait{width:54px;height:54px;min-width:54px;flex-basis:54px}
+ .solo-district-grid .district-upgrade-button.district-building-active{padding-bottom:49px}
+}
+@media(max-width:400px){
+ .solo-district-grid{grid-template-columns:minmax(0,1fr)!important}
+ .solo-district-grid .district-upgrade-button{padding:9px 10px;gap:9px;min-height:88px}
+ .solo-district-grid .district-upgrade-button>.ui-portrait{width:48px;height:48px;min-width:48px;flex-basis:48px}
+ .solo-district-grid .district-upgrade-button.district-building-active{padding-bottom:49px}
+}
 </style></head><body>
 <section id="soloTitle" class="solo-title" role="dialog" aria-modal="true" aria-label="Starfall Dominion title screen"><div class="solo-menu-backdrop" aria-hidden="true"><div class="solo-nebula"></div><div class="solo-stars solo-stars-near"></div><div class="solo-stars solo-stars-far"></div><div class="solo-small-planet solo-small-planet-a"></div><div class="solo-small-planet solo-small-planet-b"></div><div class="solo-small-planet solo-small-planet-c"></div></div><div class="solo-title-content"><div class="solo-orb" aria-hidden="true"><div class="solo-earth-surface"><svg viewBox="0 0 760 370" preserveAspectRatio="none" aria-hidden="true"><g fill="#5d9f77" stroke="#377e69" stroke-width="3"><path d="M35 70L95 40 156 57 176 89 152 116 171 145 148 170 136 207 107 224 82 184 59 173 48 140 18 124Z"/><path d="M149 205L193 217 221 251 208 293 183 350 162 337 150 299 138 264Z"/><path d="M303 76L348 48 391 55 429 44 495 63 525 91 506 124 472 129 456 153 431 154 404 133 391 156 361 143 342 118 318 123Z"/><path d="M352 154L408 156 442 194 422 241 398 286 374 331 346 297 340 248 320 217Z"/><path d="M498 204L545 183 581 204 602 239 588 276 533 269 509 242Z"/><path d="M668 63L713 57 745 78 725 118 689 121Z"/></g><g fill="#bed0a2" opacity=".48"><path d="M93 65L135 76 127 101 92 112 77 93Z"/><path d="M349 102L387 76 412 88 405 110 371 127Z"/><path d="M533 219L572 218 580 244 547 253Z"/></g></svg></div><div class="solo-earth-clouds"></div></div><p class="solo-kicker">THE GALAXY IS YOURS TO CONQUER</p><h1>STARFALL<br>DOMINION</h1><p>Living Colonies - Fleet Warfare - Orbital Defense</p><div class="buttons solo-title-actions"><button id="menuCampaign" class="primary">Campaign</button><button id="menuCustom">Custom Game</button><button id="menuOnline">Online</button><button id="soloGuide">Tutorial</button><button id="soloTitleProfile">Account &amp; Profile</button><button id="soloTitleLeaderboard">Leaderboard</button><p id="profileGateHint" class="help" role="status">Create a commander profile to begin.</p></div><p class="help">Your existing browser save is preserved.</p></div></section>
 
