@@ -1166,7 +1166,22 @@ function advanceEngagements(dt){
   if(attack.ships>0&&s.owner!==e.owner&&s.station>0&&s.stationHP>0){attack.ships=Math.max(0,attack.ships-Math.max(1,Math.ceil(s.station*dt*.6)));s.stationHP=Math.max(0,s.stationHP-Math.max(1,Math.ceil(dt*attack.ships*.025)));if(s.stationHP===0){s.station=0;note('Space Station destroyed at '+s.name+'.');}}
  if(attack.ships>0&&s.owner!==e.owner){const cannons=(s.moons||[]).filter(m=>m.cannon>0&&m.hp>0);for(const m of cannons){const damage=Math.max(1,Math.ceil(m.cannon*dt*.38));attack.ships=Math.max(0,attack.ships-damage);m.hp=Math.max(0,m.hp-Math.max(1,Math.ceil(dt*attack.ships*.018)));if(m.hp===0){m.cannon=0;note('Orbital Defense Cannon destroyed at '+s.name+'.');}}}if(attackBonus>0&&attack.ships>0&&defense.ships>0){const pressure=Math.min(defense.ships,Math.max(0,Math.ceil(dt*attackBonus*1.5)));defense.ships-=pressure;}if(defenseBonus>0&&defense.ships>0&&attack.ships>0){const counter=Math.min(attack.ships,Math.max(0,Math.ceil(dt*defenseBonus*1.5)));attack.ships-=counter;}
   s.ships=defense.ships;s.frigates=defense.frigate;s.cruisers=defense.cruiser;
-  if(attack.ships&&defense.ships){active.push(e);continue;}
+  if(attack.ships&&defense.ships){
+   const attackingFleet=e.permanentId?pfGet(e.permanentId):null;
+   if(attackingFleet?.retreat&&attack.ships<=Math.max(1,Math.floor((e.attackShips||attack.ships)*.3))){
+    const retreatTargets=game.systems.map((v,i)=>({v,i})).filter(x=>x.v.owner==='player');
+    retreatTargets.sort((a,b)=>{const ar=route(e.dest,a.i,'player'),br=route(e.dest,b.i,'player');return (ar?ar.length:999)-(br?br.length:999);});
+    const safe=retreatTargets.find(x=>{const r=route(e.dest,x.i,'player');return r&&r.length>=2&&(r.length<=2||game.techs.includes('navigation'));});
+    if(safe){const path=route(e.dest,safe.i,'player');
+     game.fleets.push({owner:'player',permanentId:attackingFleet.id,ships:attack.ships,frigates:Math.min(attack.frigate,attack.ships),cruisers:Math.min(attack.cruiser,Math.max(0,attack.ships-attack.frigate)),troops:e.troops||0,marines:e.marines||0,armor:e.armor||0,path,step:0,progress:0,order:'retreat',moonTarget:null});
+     attackingFleet.status='moving';attackingFleet.order='return';attackingFleet.destination=safe.i;
+     attackingFleet.xp+=35;attackingFleet.losses++;pfRecord(attackingFleet,'Tactical retreat from '+s.name);
+     note(attackingFleet.name+' retreated from '+s.name+' with '+attack.ships+' ships.');
+     continue;
+    }
+   }
+   active.push(e);continue;
+  }
   let result;
   if(!attack.ships){result=defense.ships?'Defenders held':'Mutual destruction';}
   else{
