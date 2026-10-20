@@ -330,7 +330,7 @@ body.in-game #gameTutorial .game-tutorial-actions{
 .galactic-events{padding:11px;margin:12px 0;border:1px solid #6f6489;border-radius:10px;background:#1a203a}
 .galactic-events summary{cursor:pointer;font-weight:650}
 .galactic-events p{font-size:12px;line-height:1.5}
-</style></head><body>
+</style><style>.defense-upgrades>summary{font-size:17px;font-weight:750;cursor:pointer;padding:5px 0 10px;list-style-position:inside}.defense-upgrades:not([open]){padding-bottom:8px}.defense-upgrades .defense-lunar-section{margin:12px 0 0;padding:8px;border-top:1px solid #30506a;background:transparent}.defense-upgrades .defense-lunar-section:empty{display:none}</style></head><body>
 <section id="soloTitle" class="solo-title" role="dialog" aria-modal="true" aria-label="Starfall Dominion title screen"><div class="solo-menu-backdrop" aria-hidden="true"><div class="solo-nebula"></div><div class="solo-stars solo-stars-near"></div><div class="solo-stars solo-stars-far"></div><div class="solo-small-planet solo-small-planet-a"></div><div class="solo-small-planet solo-small-planet-b"></div><div class="solo-small-planet solo-small-planet-c"></div></div><div class="solo-title-content"><div class="solo-orb" aria-hidden="true"><div class="solo-earth-surface"><svg viewBox="0 0 760 370" preserveAspectRatio="none" aria-hidden="true"><g fill="#5d9f77" stroke="#377e69" stroke-width="3"><path d="M35 70L95 40 156 57 176 89 152 116 171 145 148 170 136 207 107 224 82 184 59 173 48 140 18 124Z"/><path d="M149 205L193 217 221 251 208 293 183 350 162 337 150 299 138 264Z"/><path d="M303 76L348 48 391 55 429 44 495 63 525 91 506 124 472 129 456 153 431 154 404 133 391 156 361 143 342 118 318 123Z"/><path d="M352 154L408 156 442 194 422 241 398 286 374 331 346 297 340 248 320 217Z"/><path d="M498 204L545 183 581 204 602 239 588 276 533 269 509 242Z"/><path d="M668 63L713 57 745 78 725 118 689 121Z"/></g><g fill="#bed0a2" opacity=".48"><path d="M93 65L135 76 127 101 92 112 77 93Z"/><path d="M349 102L387 76 412 88 405 110 371 127Z"/><path d="M533 219L572 218 580 244 547 253Z"/></g></svg></div><div class="solo-earth-clouds"></div></div><p class="solo-kicker">THE GALAXY IS YOURS TO CONQUER</p><h1>STARFALL<br>DOMINION</h1><p>Living Colonies - Fleet Warfare - Orbital Defense</p><div class="buttons solo-title-actions"><button id="menuCampaign" class="primary">Campaign</button><button id="menuCustom">Custom Game</button><button id="menuOnline">Online</button><button id="soloGuide">Tutorial</button><button id="soloTitleProfile">Account &amp; Profile</button><button id="soloTitleLeaderboard">Leaderboard</button><p id="profileGateHint" class="help" role="status">Create a commander profile to begin.</p></div><p class="help">Your existing browser save is preserved.</p></div></section>
 
 <section id="multiplayerAccount" role="dialog" aria-modal="true" aria-labelledby="mpAuthTitle">
@@ -952,8 +952,7 @@ function renderMoonConstruction(planet,planetId){
  const grid=document.getElementById('soloDistrictGrid');if(!grid)return;
  let section=document.getElementById('moonConstruction');
  if(!section){section=document.createElement('section');section.id='moonConstruction';section.className='solo-inspector';grid.parentElement.insertBefore(section,grid.nextSibling);}
- section.replaceChildren();renderStation(planet,planetId,section);
- const title=document.createElement('h2');title.textContent='Moons & Orbital Defense';section.appendChild(title);
+ section.replaceChildren();
  if(!planet.moons?.length){const p=document.createElement('p');p.textContent='This planet has no moons.';section.appendChild(p);return;}
  for(const [index,moon] of planet.moons.entries()){
   const price=moonCannonCost(moon.cannon),row=document.createElement('div');row.className='stat';row.style.cssText='align-items:center;flex-wrap:wrap';
@@ -1424,9 +1423,10 @@ function queueDefenseUpgrade(type,planetId){
 function renderDefenseUpgrades(){
  const mount=document.getElementById('defensiveUpgradeMount');if(!mount)return;mount.replaceChildren();
  const planetId=soloPlanetId!==null?soloPlanetId:selected;const s=game.systems[planetId];if(!s||s.owner!=='player')return;
- const section=document.createElement('section');section.className='defense-upgrades';
- const h=document.createElement('h2');h.textContent='Planetary Defense Upgrades';section.appendChild(h);
- const summary=document.createElement('p');summary.className='help';summary.textContent='Additional defenses complement Fortresses, orbital stations, moon cannons and Radar. Upgrades have five levels, cost resources and use construction queues.';section.appendChild(summary);
+ const section=document.createElement('details');section.className='defense-upgrades';section.open=window.starfallDefenseExpanded===true;
+ section.addEventListener('toggle',()=>{window.starfallDefenseExpanded=section.open;});
+ const h=document.createElement('summary');h.textContent='🛡 Planetary Defense Upgrades';section.appendChild(h);
+ const summary=document.createElement('p');summary.className='help';summary.textContent='Shield arrays, orbital batteries, bunkers, space stations and moon-based space cannons. Expand this section to build and upgrade all five defenses.';section.appendChild(summary);
  for(const type of Object.keys(DEFENSE_NAMES)){
   const level=s[type]||0,required=type==='shieldArray'?3:2,job=game.jobs.find(j=>j.system===planetId&&j.type===type);
   const card=document.createElement('div');card.className='defense-upgrade-card';
@@ -1438,6 +1438,8 @@ function renderDefenseUpgrades(){
   card.appendChild(btn);if(job)card.appendChild(constructionBar(job));
   section.appendChild(card);
  }
+ const orbital=document.createElement('div');orbital.className='defense-upgrade-card';renderStation(s,planetId,orbital);section.appendChild(orbital);
+ const lunar=document.getElementById('moonConstruction');if(lunar){lunar.classList.add('defense-lunar-section');section.appendChild(lunar);lunar.hidden=false;}
  mount.appendChild(section);
 }
 function renderGalacticEvents(){
