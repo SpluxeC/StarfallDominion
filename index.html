@@ -853,6 +853,9 @@ const ECONOMY_SECONDS=20,HOP_SECONDS=9,AI_GROW_SECONDS=24,AI_ORDER_SECONDS=38,CE
 const BUILD_SECONDS={mine:12,reactor:12,farm:10,shipyard:20,extractor:14,fleet:9,frigate:14,cruiser:22,upgrade:25,foundry:20,laboratory:22,tradeHub:20,outpost:14,fortress:26,refinery:23,barracks:18,factory:26,radar:30,troops:10,marines:14,armor:20};
 const CANONICAL_PLANET_NAMES=["Solara b","Vega II","Arcturus c","Nyx-4","Kepler-62f","Kestrel-9","Epsilon Eridani b","Orionis III","Tau Ceti e","Auriga b","Helion-7","Umbriel Prime","Cygni IV","Sable-12","Altair b","Nimbus-6","Proxima d","Zephyrus III","Mizar b","Titania-3","Argentis IV","Mirach b","Pulsar-9","Eclipse-5","Lyra IX"];
 const MOON_NAMES=['Selene','Phobos','Deimos','Europa','Callisto','Triton','Rhea','Dione','Enceladus','Oberon','Titan','Miranda','Ariel','Proteus','Nereid','Iapetus','Mimas','Hyperion','Phoebe','Larissa','Galatea','Despina','Thalassa','Amalthea','Elara','Carme','Pasiphae','Lysithea','Adrastea','Metis','Janus','Epimetheus','Helene','Telesto','Calypso','Atlas','Prometheus','Pandora'];
+const PF_KEYS=['ships','frigates','cruisers','troops','marines','armor'];
+const PF_RANKS=[['Recruit',0,0],['Trained',100,.03],['Veteran',300,.06],['Elite',700,.09],['Legendary',1500,.12]];
+const INVASION_POLICIES=['none','precision','siege'];
 let game;
 try{const raw=localStorage.getItem(KEY)||localStorage.getItem(KEY_RTS41)||localStorage.getItem(KEY_V40)||localStorage.getItem(KEY_V30)||localStorage.getItem(KEY_V22)||localStorage.getItem(KEY_V21)||localStorage.getItem(KEY_V20)||localStorage.getItem(KEY_V12)||localStorage.getItem(KEY_V11)||localStorage.getItem(KEY_V10)||localStorage.getItem(KEY_V09)||localStorage.getItem(KEY_V8)||localStorage.getItem(KEY_V7)||localStorage.getItem(KEY_V6)||localStorage.getItem(KEY_V5)||localStorage.getItem(KEY_V4)||localStorage.getItem(KEY_V3)||localStorage.getItem(PREV_KEY)||localStorage.getItem(OLD_KEY);const stored=raw?JSON.parse(raw):null;const campaignRaw=localStorage.getItem(CAMPAIGN_SAVE_KEY);const preferred=campaignRaw?JSON.parse(campaignRaw):stored;if(preferred&&Array.isArray(preferred.systems)&&preferred.systems.length<=BASE.length)expandGalaxySave(preferred);game=valid(preferred)?preferred:initial();if(!game.mode)game.mode='campaign';normalizeGame(game);}catch(error){console.error('Save migration failed; using safe default state',error);game=initial();normalizeGame(game);}
 function valid(s){
@@ -964,7 +967,7 @@ function normalizeGame(state){expandGalaxySave(state);normalizePermanentFleets(s
  for(const [id,config] of Object.entries(state.autoRoutes)){if(!Number.isInteger(+id)||+id<0||+id>=state.systems.length||!config||!Number.isInteger(config.destination)||config.destination<0||config.destination>=state.systems.length||!Number.isFinite(config.amount)){delete state.autoRoutes[id];continue;}config.amount=Math.max(0,Math.min(20,Math.floor(config.amount)));config.nextAt=Number.isFinite(config.nextAt)?config.nextAt:0;}
  state.systems.forEach((v,i)=>{if(!v.environment)v.environment=ENVIRONMENTS[i];const profile=depositProfile(v,i);if(!Number.isFinite(v.depositRemaining)||v.depositRemaining<0)v.depositRemaining=profile.capacity;v.depositRemaining=Math.min(profile.capacity,v.depositRemaining);if(!Number.isInteger(v.scanLevel)||v.scanLevel<0||v.scanLevel>2)v.scanLevel=v.owner==='player'?2:0;if(typeof v.explored!=='boolean')v.explored=v.owner==='player';if(!Number.isFinite(v.scanEndsAt)||v.scanEndsAt<0)v.scanEndsAt=0;if(!Number.isFinite(v.exploreEndsAt)||v.exploreEndsAt<0)v.exploreEndsAt=0;if(typeof v.anomalyResolved!=='boolean')v.anomalyResolved=v.explored;if(typeof v.anomalyPending!=='boolean')v.anomalyPending=false;if(v.anomalyChoice!==0&&v.anomalyChoice!==1)v.anomalyChoice=null;for(const cls of ['frigates','cruisers'])if(!Number.isInteger(v[cls])||v[cls]<0)v[cls]=0;if(!Number.isInteger(v.troops)||v.troops<0)v.troops=0;for(const unit of ['marines','armor'])if(!Number.isInteger(v[unit])||v[unit]<0)v[unit]=0;for(const kind of ['foundry','laboratory','tradeHub','outpost','fortress','refinery','barracks','factory'])if(!Number.isInteger(v[kind])||v[kind]<0)v[kind]=0;if(!Number.isInteger(v.extractors)||v.extractors<0)v.extractors=0;if(!Number.isInteger(v.level)||v.level<1)v.level=1;if(!['balanced','mining','research','military','trade'].includes(v.specialization))v.specialization='balanced';});
  for(const key of ['titanium','crystals','gas','copper','nickel','tungsten'])if(!Number.isFinite(state.resources[key])||state.resources[key]<0)state.resources[key]=0;
- if(!Number.isFinite(state.research))state.research=0;if(!Array.isArray(state.techs))state.techs=[];if(!Number.isInteger(state.battles))state.battles=0;if(!Array.isArray(state.engagements))state.engagements=[];if(!Array.isArray(state.battleReports))state.battleReports=[];state.engagements=state.engagements.filter(e=>e&&Number.isInteger(e.dest)&&e.dest>=0&&e.dest<state.systems.length&&['player','ai'].includes(e.owner)&&Number.isFinite(e.attackHP)&&Number.isFinite(e.defendHP)&&e.attackHP>0&&e.defendHP>0&&Number.isInteger(e.origin)&&e.origin>=0&&e.origin<state.systems.length).map(e=>({...e,attackShips:Math.max(1,e.attackShips||Math.ceil(e.attackHP/10)),defendShips:Math.max(0,e.defendShips??Math.ceil(e.defendHP/10)),attackFrigates:Math.max(0,e.attackFrigates||0),attackCruisers:Math.max(0,e.attackCruisers||0),defendFrigates:Math.max(0,e.defendFrigates||0),defendCruisers:Math.max(0,e.defendCruisers||0),troops:Math.max(0,Math.floor(e.troops||0)),marines:Math.max(0,Math.floor(e.marines||0)),armor:Math.max(0,Math.floor(e.armor||0)),elapsed:Math.max(0,e.elapsed||0),stance:['attack','guard','retreat'].includes(e.stance)?e.stance:'attack'}));state.battleReports=state.battleReports.filter(x=>typeof x==='string').slice(0,12);
+ if(!Number.isFinite(state.research))state.research=0;if(!Array.isArray(state.techs))state.techs=[];if(!Number.isInteger(state.battles))state.battles=0;state.systems.forEach(p=>{p.occupationEndsAt=Number.isFinite(p.occupationEndsAt)?Math.max(0,p.occupationEndsAt):0;});if(!Array.isArray(state.engagements))state.engagements=[];if(!Array.isArray(state.battleReports))state.battleReports=[];state.engagements=state.engagements.filter(e=>e&&Number.isInteger(e.dest)&&e.dest>=0&&e.dest<state.systems.length&&['player','ai'].includes(e.owner)&&Number.isFinite(e.attackHP)&&Number.isFinite(e.defendHP)&&e.attackHP>0&&e.defendHP>0&&Number.isInteger(e.origin)&&e.origin>=0&&e.origin<state.systems.length).map(e=>({...e,attackShips:Math.max(1,e.attackShips||Math.ceil(e.attackHP/10)),defendShips:Math.max(0,e.defendShips??Math.ceil(e.defendHP/10)),attackFrigates:Math.max(0,e.attackFrigates||0),attackCruisers:Math.max(0,e.attackCruisers||0),defendFrigates:Math.max(0,e.defendFrigates||0),defendCruisers:Math.max(0,e.defendCruisers||0),troops:Math.max(0,Math.floor(e.troops||0)),marines:Math.max(0,Math.floor(e.marines||0)),armor:Math.max(0,Math.floor(e.armor||0)),elapsed:Math.max(0,e.elapsed||0),stance:['attack','guard','retreat'].includes(e.stance)?e.stance:'attack'}));state.battleReports=state.battleReports.filter(x=>typeof x==='string').slice(0,12);
  if(!Number.isFinite(state.elapsedSeconds)||state.elapsedSeconds<0)state.elapsedSeconds=Math.max(0,(state.turn-1)*ECONOMY_SECONDS);
  if(!Number.isFinite(state.ceasefireEndsAt))state.ceasefireEndsAt=state.ceasefireUntil>state.turn?state.elapsedSeconds+(state.ceasefireUntil-state.turn)*ECONOMY_SECONDS:0;
  if(!Number.isFinite(state.aiGrowthClock))state.aiGrowthClock=0;if(!Number.isFinite(state.aiOrderClock))state.aiOrderClock=0;if(!Number.isFinite(state.aiExpansionStartedAt))state.aiExpansionStartedAt=state.systems.filter(s=>s.owner==='player').length>1?state.elapsedSeconds:null;if(!Number.isFinite(state.aiLastExpansionAt))state.aiLastExpansionAt=null;
@@ -1132,7 +1135,7 @@ function productionForecast(){
   };
   for(const [resource,output] of Object.entries(local)){
    const existing=resource==='alloys'?1:StarfallExpansion.economyBonus(s,resource,game.techs);
-   totals[resource]+=output*existing*planetProductionModifier(s,resource);
+   totals[resource]+=output*existing*planetProductionModifier(s,resource)*(Number(s.occupationEndsAt||0)>game.elapsedSeconds?.6:1);
   }
   // Planet upkeep is an empire expense, not production, and is never multiplied.
   totals.energy-=2+3*(s.foundry||0)+2*(s.laboratory||0);
@@ -1141,14 +1144,14 @@ function productionForecast(){
    if(i%3===0)totals.research+=planetProductionModifier(s,'research');
    else if(i%3===1)totals.energy+=planetProductionModifier(s,'energy');
   }
-  totals[depositProfile(s,i).type]+=depositYield(s,i)*(s.specialization==='mining'?1.3:1)*(game.techs.includes('prospecting')?1.25:1);
-  if(RESOURCE_DEPOSITS[s.environment]==='gas')totals.gas+=5*(s.refinery||0);
+  totals[depositProfile(s,i).type]+=depositYield(s,i)*(s.specialization==='mining'?1.3:1)*(game.techs.includes('prospecting')?1.25:1)*(Number(s.occupationEndsAt||0)>game.elapsedSeconds?.6:1);
+  if(RESOURCE_DEPOSITS[s.environment]==='gas')totals.gas+=5*(s.refinery||0)*(Number(s.occupationEndsAt||0)>game.elapsedSeconds?.6:1);
  }
  return totals;
 }
 
 /* Planetary invasion v1.0: orbital superiority -> timed troop landing -> occupation. */
-const INVASION_POLICIES=['none','precision','siege'];
+
 function invasionPolicy(e){const fleet=e.permanentId?pfGet(e.permanentId):null;return INVASION_POLICIES.includes(fleet?.bombardment)?fleet.bombardment:'precision';}
 function invasionStrength(units){return Math.max(0,units.troops||0)+Math.max(0,units.marines||0)*2+Math.max(0,units.armor||0)*3;}
 function invasionBegin(e,s,attack){
@@ -1206,11 +1209,14 @@ function invasionTick(e,s,dt){
   s.ships=0;s.frigates=0;s.cruisers=0;
   s.troops=inv.defender.troops;s.marines=inv.defender.marines;s.armor=inv.defender.armor;
   s.fortress=inv.defenderFortress;
-  // Surviving invasion ships retreat without reclaiming lost ground troops.
+  // Surviving invasion ships withdraw to friendly reserves. Permanent manifests remain separate.
   const survivingFleet=e.permanentId?pfGet(e.permanentId):null;
-  if(survivedShips>0&&survivingFleet){
+  if(survivedShips>0){
    const origin=game.systems[e.origin];
-   if(origin?.owner===e.owner){origin.ships+=survivedShips;origin.frigates=(origin.frigates||0)+inv.frigates;origin.cruisers=(origin.cruisers||0)+inv.cruisers;survivingFleet.location=e.origin;}
+   if(origin?.owner===e.owner){
+    if(survivingFleet){survivingFleet.location=e.origin;survivingFleet.ships=survivedShips;survivingFleet.frigates=inv.frigates;survivingFleet.cruisers=inv.cruisers;survivingFleet.troops=inv.attacker.troops;survivingFleet.marines=inv.attacker.marines;survivingFleet.armor=inv.attacker.armor;survivingFleet.status='stationed';}
+    else{origin.ships+=survivedShips;origin.frigates=(origin.frigates||0)+inv.frigates;origin.cruisers=(origin.cruisers||0)+inv.cruisers;}
+   }
   }
  }
  e.troops=inv.attacker.troops;e.marines=inv.attacker.marines;e.armor=inv.attacker.armor;
@@ -1619,8 +1625,8 @@ el('circle',{cx:s.x,cy:s.y,r:26,fill:'transparent',stroke:'none','pointer-events
 }
 
 /* Permanent Fleet Command v1: independent manifests, save migration, and tactical command. */
-const PF_KEYS=['ships','frigates','cruisers','troops','marines','armor'];
-const PF_RANKS=[['Recruit',0,0],['Trained',100,.03],['Veteran',300,.06],['Elite',700,.09],['Legendary',1500,.12]];
+
+
 let pfExpanded=null;
 function pfCapacity(f){return Math.max(0,f.ships-f.frigates-f.cruisers)+f.frigates*3+f.cruisers*5;}
 function pfLimit(){return Math.min(10,3+Math.floor(Math.max(0,game.systems.filter(p=>p.owner==='player').length-1)/3)+(game.techs.includes('commandnet')?2:0)+(game.techs.includes('logistics')?1:0));}
@@ -1747,7 +1753,8 @@ function settlePermanentEngagement(e,attack,defense,result){
    attacker.cruisers=Math.min(s.cruisers||0,attacker.ships-attacker.frigates);
    attacker.troops=s.troops||0;attacker.marines=s.marines||0;attacker.armor=s.armor||0;
    for(const k of PF_KEYS)s[k]=Math.max(0,(s[k]||0)-(attacker[k]||0));
-  }else{attacker.status='inactive';attacker.ships=0;attacker.frigates=0;attacker.cruisers=0;}
+  }else if(e.invasion&&attacker.status==='stationed'&&attacker.ships>0){/* Ground assault failed; surviving ships returned to the permanent fleet. */}
+  else{attacker.status='inactive';attacker.ships=0;attacker.frigates=0;attacker.cruisers=0;}
   pfRecord(attacker,result);
  }
  const defenders=game.permanentFleets.filter(f=>f.location===e.dest&&f.status==='defending');
